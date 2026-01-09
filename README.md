@@ -83,10 +83,6 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
     ```
     Buka browser dan akses: `http://localhost:8000`
 
-## 📸 Screenshots
-
-*(Tambahkan screenshot aplikasi di sini agar lebih menarik, misalnya halaman Dashboard, Form Pengajuan, dan Laporan PDF)*
-
 ---
 
 ## 👨‍💻 Author
