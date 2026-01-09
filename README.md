@@ -1,59 +1,95 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sistem Informasi Inventaris Barang (Si-ATK) 📦
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem Informasi Manajemen Inventaris Alat Tulis Kantor (ATK) berbasis web.  
+Project ini dikembangkan sebagai bagian dari **Program Magang di BKPSDM Kabupaten Boyolali**.
 
-## About Laravel
+![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-563D7C?style=for-the-badge&logo=bootstrap&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📖 Tentang Project
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Aplikasi ini bertujuan untuk mendigitalkan proses pencatatan keluar-masuk barang (ATK) yang sebelumnya manual. Sistem ini memfasilitasi permintaan barang dari setiap Bidang/Divisi dengan sistem **Approval (Persetujuan)** oleh Admin, serta menyediakan laporan otomatis dalam bentuk PDF dan Excel.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## ✨ Fitur Utama
 
-## Learning Laravel
+### 🔐 Multi-Level User (Role)
+* **Admin:** Memiliki akses penuh (Kelola Barang, Input Stok Masuk, Acc/Tolak Pengajuan, Cetak Laporan).
+* **User Bidang:** Mengajukan permintaan barang, melihat riwayat pengajuan, dan cek status (Menunggu/Disetujui/Ditolak).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 📊 Manajemen Barang
+* **Dashboard:** Ringkasan jumlah barang, kategori, dan transaksi terbaru.
+* **Stok Masuk (Restock):** Input penambahan stok barang dari supplier.
+* **Stok Keluar (Pengajuan):** Form permintaan barang dengan validasi stok real-time.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### ✅ Sistem Approval (Persetujuan)
+* Bidang mengajukan barang -> Status **Pending (Menunggu)**.
+* Admin meninjau pengajuan -> Klik **Approve (Setuju)** atau **Reject (Tolak)**.
+* Stok hanya berkurang otomatis jika status **Approved**.
 
-## Laravel Sponsors
+### 🖨️ Laporan & Ekspor
+* **Cetak PDF:** Laporan Barang Masuk, Barang Keluar, Sisa Stok, dan Form Pengajuan.
+* **Ekspor Excel:** Rekapitulasi data untuk administrasi lebih lanjut.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🛠️ Teknologi yang Digunakan
 
-### Premium Partners
+* **Framework:** Laravel 10/11
+* **Bahasa:** PHP 8.1+
+* **Database:** MySQL
+* **Frontend:** Blade Templates, Bootstrap 5 (Mazer Admin Template)
+* **Library Tambahan:**
+    * `barryvdh/laravel-dompdf` (Cetak PDF)
+    * `maatwebsite/excel` (Export Excel)
+    * `simple-datatables` (Tabel interaktif)
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🚀 Cara Instalasi (Localhost)
 
-## Contributing
+Ikuti langkah ini untuk menjalankan project di komputer Anda:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1.  **Clone Repository**
+    ```bash
+    git clone [https://github.com/ndikkkk/inventory-atk.git](https://github.com/ndikkkk/inventory-atk.git)
+    cd inventory-atk
+    ```
 
-## Code of Conduct
+2.  **Install Dependencies**
+    ```bash
+    composer install
+    npm install
+    ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+3.  **Setup Environment**
+    * Duplikat file `.env.example` menjadi `.env`
+    * Atur konfigurasi database di file `.env`:
+    ```env
+    DB_DATABASE=nama_database_kamu
+    DB_USERNAME=root
+    DB_PASSWORD=
+    ```
 
-## Security Vulnerabilities
+4.  **Generate Key & Migrasi Database**
+    ```bash
+    php artisan key:generate
+    php artisan migrate --seed
+    ```
+    *(Gunakan `--seed` jika ada data dummy user/admin)*
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+5.  **Jalankan Project**
+    ```bash
+    php artisan serve
+    ```
+    Buka browser dan akses: `http://localhost:8000`
 
-## License
+## 📸 Screenshots
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+*(Tambahkan screenshot aplikasi di sini agar lebih menarik, misalnya halaman Dashboard, Form Pengajuan, dan Laporan PDF)*
+
+---
+
+## 👨‍💻 Author
+
+**Mahasiswa Magang** - BKPSDM Boyolali  
+GitHub: [@ndikkkk](https://github.com/ndikkkk)
+
+---
+*Dibuat dengan ❤️ untuk BKPSDM Boyolali*
