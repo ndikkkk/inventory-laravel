@@ -62,7 +62,10 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
     * Duplikat file `.env.example` menjadi `.env`
     * Atur konfigurasi database di file `.env`:
     ```env
-    DB_DATABASE=nama_database_kamu
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE= db_atk <-- ubah ke database pribadi
     DB_USERNAME=root
     DB_PASSWORD=
     ```
