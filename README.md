@@ -87,5 +87,5 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
 
 ## 👨‍💻 Author
 
-**Mahasiswa Magang** - BKPSDM Boyolali  
+**Andhika Alvin Adhzikra** Mahasiswa Magang - BKPSDM Boyolali  
 GitHub: [@ndikkkk](https://github.com/ndikkkk)
