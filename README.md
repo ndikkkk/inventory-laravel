@@ -93,6 +93,3 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
 
 **Mahasiswa Magang** - BKPSDM Boyolali  
 GitHub: [@ndikkkk](https://github.com/ndikkkk)
-
----
-*Dibuat dengan ❤️ untuk BKPSDM Boyolali*
