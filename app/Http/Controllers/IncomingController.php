@@ -27,25 +27,37 @@ class IncomingController extends Controller
             'jumlah'  => 'required|numeric|min:1',
         ]);
 
+        // 1. Ambil Data Barang Lama
+    $item = \App\Models\Item::find($request->item_id);
+    $hargaDariMaster = $item->harga_satuan;
+
+    // 2. Hitung Sisa Stok (Stok Lama + Masuk Baru)
+    $stokBaru = $item->stok_saat_ini + $request->jumlah;
+
+    // 3. Simpan Transaksi dengan Sisa Stok
+$total = $request->jumlah * $hargaDariMaster;
+
         // Simpan Catatan Transaksi
         IncomingTransaction::create([
             'item_id'  => $request->item_id,
             'tanggal'  => $request->tanggal,
             'jumlah'   => $request->jumlah,
-            'supplier' => $request->supplier, // Opsional
+            'harga_satuan' => $hargaDariMaster, // Masuk DB
+            'total_harga'  => $total,                 // Masuk DB
+            'sisa_stok'    => $stokBaru,              // Masuk DB
         ]);
 
-        // LOGIC PENTING: Otomatis Tambah Stok Barang
-        $item = Item::find($request->item_id);
-        $item->increment('stok_saat_ini', $request->jumlah);
+        // 4. Update Master Barang
+    $item->stok_saat_ini = $stokBaru;
+    $item->save();
 
-        return redirect()->route('items.index')->with('success', 'Stok berhasil ditambahkan!');
+        return redirect()->route('items.index')->with('success', 'Stok & Harga berhasil diperbarui!');
     }
 
     // --- FITUR BARU: CETAK PDF BARANG MASUK ---
     public function exportPdf()
     {
-        $data = IncomingTransaction::with('item')->latest()->get();
+        $data = IncomingTransaction::with('item')->orderBy('tanggal', 'asc')->orderBy('created_at','asc')->get();
         $pdf = PDF::loadView('transactions.incoming.pdf', compact('data'));
         return $pdf->stream('Laporan-Barang-Masuk.pdf');
     }

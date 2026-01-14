@@ -13,7 +13,7 @@ return new class extends Migration
 {
     Schema::create('categories', function (Blueprint $table) {
         $table->id();
-        $table->string('nama_kategori'); // Contoh: Kertas, Alat Tulis, Map
+        $table->string('nama_kategori')->unique();
         $table->timestamps();
     });
 }

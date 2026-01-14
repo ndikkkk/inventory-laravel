@@ -9,13 +9,17 @@ use App\Imports\ItemImport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ItemsExport; // Nanti kita buat file ini
 use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\IncomingTransaction;
+use App\Models\OutgoingTransaction;
+use Illuminate\Support\Facades\Schema; // Pastikan ini ada
+use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
     // 1. TAMPILKAN SEMUA BARANG
     public function index()
     {
-        $items = Item::with('category')->latest()->get(); // Ambil data + nama kategorinya
+        $items = Item::with('category')->orderBy('updated_at', 'desc')->get(); // Ambil data + nama kategorinya
         return view('items.index', compact('items'));
     }
 
@@ -33,7 +37,7 @@ class ItemController extends Controller
             'nama_barang' => 'required',
             'category_id' => 'required',
             'satuan' => 'required',
-            'stok_awal_2026' => 'required|numeric|min:0',
+            'harga_satuan' => 'required|numeric|min:0',
         ]);
 
         // Stok saat ini otomatis sama dengan stok awal saat pertama dibuat
@@ -41,8 +45,8 @@ class ItemController extends Controller
             'nama_barang' => $request->nama_barang,
             'category_id' => $request->category_id,
             'satuan' => $request->satuan,
-            'stok_awal_2026' => $request->stok_awal_2026,
-            'stok_saat_ini' => $request->stok_awal_2026,
+            'stok_saat_ini' => 0,
+            'harga_satuan' => $request->harga_satuan,
         ]);
 
         return redirect()->route('items.index')->with('success', 'Barang berhasil ditambahkan!');
@@ -84,16 +88,36 @@ class ItemController extends Controller
 
     // IMPORT CSV/EXCEL
     public function import(Request $request)
-    {
-        $request->validate([
-            'file' => 'required|mimes:csv,xls,xlsx'
-        ]);
+{
+    $request->validate([
+        'file' => 'required|mimes:csv,xls,xlsx'
+    ]);
 
-        // Proses Import
+    try {
+        // Coba Import
         Excel::import(new ItemImport, $request->file('file'));
 
-        return redirect()->route('items.index')->with('success', 'Data barang berhasil diimpor dari Excel!');
+        // Jika berhasil (tidak ada error)
+        return redirect()->route('items.index')->with('success', 'Data barang BERHASIL diimport!');
+
+    } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+        // JIKA GAGAL VALIDASI (Misal ada ID 13)
+        $failures = $e->failures();
+
+        $pesanError = 'Gagal Import! Ada data yang salah: ';
+        foreach ($failures as $failure) {
+            $baris = $failure->row(); // Baris ke berapa
+            $error = $failure->errors()[0]; // Pesan errornya
+            $pesanError .= " (Baris $baris: $error)";
+        }
+
+        return back()->with('error', $pesanError);
+
+    } catch (\Exception $e) {
+        // JIKA ERROR LAINNYA
+        return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
     }
+}
 
     // --- FITUR BARU: CETAK EXCEL ---
     public function exportExcel()
@@ -113,5 +137,27 @@ class ItemController extends Controller
 
         // Stream / Download
         return $pdf->stream('Laporan-Stok-Barang.pdf');
+    }
+
+    public function deleteAll()
+    {
+        // 1. Matikan Pengecekan Kunci Asing (Foreign Key)
+        // Agar kita bisa menghapus data secara paksa tanpa error relasi
+        Schema::disableForeignKeyConstraints();
+
+        // 2. HAPUS RIWAYAT TRANSAKSI (Incoming & Outgoing)
+        // truncate() akan menghapus semua isi tabel & mereset ID kembali ke 1
+        IncomingTransaction::truncate(); // Hapus Laporan Masuk
+        OutgoingTransaction::truncate(); // Hapus Laporan Keluar, Pengajuan, Pending, History
+
+        // 3. HAPUS MASTER BARANG
+        Item::truncate(); // Hapus semua data barang
+
+        // 4. Hidupkan Kembali Pengecekan Kunci Asing
+        Schema::enableForeignKeyConstraints();
+
+        // 5. Kembali ke halaman barang dengan pesan sukses
+        return redirect()->route('items.index')
+            ->with('success', 'SYSTEM RESET: Semua Barang, Laporan, & Riwayat Pengajuan BERHASIL DIHAPUS TOTAL (0)!');
     }
 }

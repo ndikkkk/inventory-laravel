@@ -10,11 +10,14 @@ class OutgoingTransaction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'item_id', 
-        'division_id', 
-        'tanggal', 
-        'jumlah', 
-        'status' // <-- Tambahan penting!
+        'item_id',
+        'division_id',
+        'tanggal',
+        'jumlah',
+        'status', // <-- Tambahan penting!
+        'harga_satuan',
+        'total_harga',
+        'sisa_stok'
     ];
 
     // Relasi ke Barang

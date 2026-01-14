@@ -21,21 +21,18 @@ class OutgoingController extends Controller
 
         // LOGIKA DIVISI
         if ($user->role == 'bidang') {
-            // Cek apakah user sudah punya divisi?
             if (!$user->division_id) {
                 return redirect()->route('dashboard')->with('error', 'Akun Anda belum di-setting masuk ke Bidang mana. Hubungi Admin.');
             }
-            // Jika ada, ambil divisi sesuai ID user
             $divisions = Division::where('id', $user->division_id)->get();
         } else {
-            // Jika Admin, ambil semua
             $divisions = Division::all();
         }
 
         return view('transactions.outgoing.create', compact('items', 'divisions'));
     }
 
-    // 2. Simpan Pengajuan (Pending / Approved)
+    // 2. Simpan Pengajuan (Pending / Approved) + LOGIC SISA STOK
     public function store(Request $request)
     {
         $request->validate([
@@ -45,43 +42,54 @@ class OutgoingController extends Controller
             'jumlah'      => 'required|numeric|min:1',
         ]);
 
-        $item = Item::find($request->item_id);
+        $item = Item::findOrFail($request->item_id);
 
-        // Cek Stok Awal (Validasi Saja)
+        // Cek Stok Awal
         if ($item->stok_saat_ini < $request->jumlah) {
             return back()->with('error', 'Stok gudang tidak cukup untuk permintaan ini.');
         }
 
-        // TENTUKAN STATUS:
-        // Jika Admin yg input -> Langsung Approved.
-        // Jika Bidang yg input -> Pending (Menunggu ACC).
+        // Ambil harga dari Master Barang
+        $harga_saat_ini = $item->harga_satuan;
+        $total_rupiah   = $request->jumlah * $harga_saat_ini;
+
+        // TENTUKAN STATUS
         $status = Auth::user()->role == 'admin' ? 'approved' : 'pending';
+
+        // --- LOGIKA SISA STOK (Khusus Admin Input Langsung) ---
+        $sisaStok = null; // Default null jika pending
+        if ($status == 'approved') {
+            // Jika admin input, stok langsung berkurang sekarang
+            $sisaStok = $item->stok_saat_ini - $request->jumlah;
+        }
 
         // Simpan Transaksi
         OutgoingTransaction::create([
-            'item_id'     => $request->item_id,
-            'division_id' => $request->division_id,
-            'tanggal'     => $request->tanggal,
-            'jumlah'      => $request->jumlah,
-            'status'      => $status, // <--- Simpan status
+            'item_id'      => $request->item_id,
+            'division_id'  => $request->division_id,
+            'tanggal'      => $request->tanggal,
+            'jumlah'       => $request->jumlah,
+            'status'       => $status,
+            'harga_satuan' => $harga_saat_ini,
+            'total_harga'  => $total_rupiah,
+            'sisa_stok'    => $sisaStok // Simpan Sisa Stok (Jika Approved)
         ]);
 
-        // LOGIC STOK:
-        // Hanya kurangi stok JIKA status langsung approved (Admin yg input)
+        // LOGIC STOK DI MASTER BARANG
         if ($status == 'approved') {
             $item->decrement('stok_saat_ini', $request->jumlah);
-            return redirect()->route('outgoing.index')->with('success', 'Barang berhasil dikeluarkan (Langsung ACC)!');
+
+            return redirect()->route('outgoing.index')
+                ->with('success', 'Barang keluar! Nilai aset berkurang Rp ' . number_format($total_rupiah));
         } else {
-            // Jika Pending
-            return redirect()->route('outgoing.index')->with('success', 'Pengajuan berhasil dikirim! Menunggu persetujuan Admin.');
+            return redirect()->route('outgoing.index')
+                ->with('success', 'Pengajuan berhasil dikirim! Menunggu persetujuan Admin.');
         }
     }
 
-    // 3. (BARU) Fungsi untuk Admin Menyetujui Pengajuan
-    // Pasang ini di Route nantinya: Route::post('/outgoing/{id}/approve', [OutgoingController::class, 'approve']);
+    // 3. Fungsi Admin Menyetujui (Approve) + CATAT SISA STOK
     public function approve($id)
     {
-        // Pastikan yg akses admin
         if (Auth::user()->role != 'admin') {
             abort(403, 'Anda tidak memiliki akses.');
         }
@@ -89,61 +97,62 @@ class OutgoingController extends Controller
         $transaksi = OutgoingTransaction::findOrFail($id);
         $item = Item::findOrFail($transaksi->item_id);
 
-        // Cek lagi stoknya sebelum diapprove (takutnya stok udah diambil orang lain)
+        // Cek Stok lagi sebelum diapprove
         if ($item->stok_saat_ini < $transaksi->jumlah) {
             return back()->with('error', 'Gagal ACC! Stok barang saat ini sudah habis/kurang.');
         }
 
-        // Ubah Status jadi Approved
-        $transaksi->update(['status' => 'approved']);
+        // --- UPDATE HARGA & SISA STOK ---
+        $harga_terbaru = $item->harga_satuan;
+        $total_terbaru = $transaksi->jumlah * $harga_terbaru;
 
-        // POTONG STOK SEKARANG
-        $item->decrement('stok_saat_ini', $transaksi->jumlah);
+        // HITUNG SISA STOK SETELAH DIKURANGI
+        $stokBaru = $item->stok_saat_ini - $transaksi->jumlah;
 
-        return back()->with('success', 'Pengajuan disetujui. Stok telah dikurangi.');
+        // Update Transaksi
+        $transaksi->update([
+            'status'       => 'approved',
+            'harga_satuan' => $harga_terbaru,
+            'total_harga'  => $total_terbaru,
+            'sisa_stok'    => $stokBaru // <--- PENTING: Catat Sisa Stok di sini
+        ]);
+
+        // POTONG STOK DI MASTER BARANG
+        $item->stok_saat_ini = $stokBaru; // Pakai nilai yang sudah dihitung agar sinkron
+        $item->save();
+
+        return back()->with('success', 'Pengajuan disetujui. Stok berkurang & Sisa Stok tercatat.');
     }
 
-    // [MENU 1] BARANG KELUAR (Hanya yang sudah ACC, Tampilan Bersih)
+    // [MENU 1] BARANG KELUAR (Hanya yang sudah ACC)
     public function index()
     {
         $user = Auth::user();
-
-        // Query Dasar
         $query = OutgoingTransaction::with(['item', 'division'])->orderBy('created_at', 'desc');
 
-        // LOGIC: HANYA AMBIL YANG STATUSNYA 'APPROVED'
         if ($user->role == 'admin') {
             $transactions = $query->where('status', 'approved')->get();
         } else {
-            // Kalau user bidang, lihat history approved mereka
-            $transactions = $query->where('division_id', $user->division_id)
-                                  ->get();
+            $transactions = $query->where('division_id', $user->division_id)->get();
         }
 
-        // Return ke View yang bersih (tanpa tombol aksi)
         return view('transactions.outgoing.index', compact('transactions'));
     }
 
-    // [MENU 2] PERSETUJUAN BARANG (Semua Status, Ada Tombol Aksi)
+    // [MENU 2] PERSETUJUAN BARANG
     public function approvalPage()
     {
-        // Pastikan hanya admin yang bisa akses
-        if (Auth::user()->role != 'admin') {
-            abort(403);
-        }
+        if (Auth::user()->role != 'admin') abort(403);
 
-        // Ambil SEMUA data (Pending, Approved, Rejected)
-        // Urutkan: Pending paling atas, sisanya berdasarkan tanggal terbaru
         $transactions = OutgoingTransaction::with(['item', 'division'])
             ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Return ke View khusus Approval (ada tombolnya)
         return view('transactions.outgoing.approval', compact('transactions'));
     }
 
-    // Tambahan Function Reject (Jika mau tombol tolak)
+    // Fungsi Reject
     public function reject($id)
     {
          if (Auth::user()->role != 'admin') abort(403);
@@ -154,36 +163,28 @@ class OutgoingController extends Controller
          return back()->with('success', 'Pengajuan telah ditolak.');
     }
 
-    // --- TAMBAHAN BARU: CETAK KHUSUS HALAMAN APPROVAL (SEMUA STATUS) ---
+    // Cetak PDF Approval
     public function printApproval()
     {
-        // Ambil SEMUA data (tanpa filter status approved)
-        $data = OutgoingTransaction::with(['item', 'division'])
-                ->latest()
-                ->get();
-
-        // Load view khusus approval
+        $data = OutgoingTransaction::with(['item', 'division'])->latest()->get();
         $pdf = Pdf::loadView('transactions.outgoing.pdf_approval', compact('data'));
-        
-        // Stream dengan judul yang benar
         return $pdf->stream('Laporan-Pengajuan-Barang.pdf');
     }
-    
-    
-    // --- FITUR BARU: CETAK PDF BARANG KELUAR (Approved Only) ---
+
+    // Cetak PDF Barang Keluar (Approved Only)
     public function exportPdf()
     {
-        // Hanya ambil yang approved
         $data = OutgoingTransaction::with(['item', 'division'])
                 ->where('status', 'approved')
-                ->latest()
+                ->orderBy('tanggal', 'asc')
+                ->orderBy('created_at', 'asc')
                 ->get();
 
-        $pdf = PDF::loadView('transactions.outgoing.pdf', compact('data'));
+        $pdf = Pdf::loadView('transactions.outgoing.pdf', compact('data'));
         return $pdf->stream('Laporan-Barang-Keluar.pdf');
     }
 
-    // --- FITUR BARU: CETAK EXCEL BARANG KELUAR ---
+    // Cetak Excel
     public function exportExcel()
     {
         return Excel::download(new OutgoingExport, 'Laporan-Barang-Keluar.xlsx');

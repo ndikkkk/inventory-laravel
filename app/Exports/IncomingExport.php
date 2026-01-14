@@ -11,7 +11,8 @@ class IncomingExport implements FromCollection, WithHeadings, WithMapping
 {
     public function collection()
     {
-        return IncomingTransaction::with('item')->latest()->get();
+        return IncomingTransaction::with('item')->orderBy('tanggal', 'asc') // Tambahkan ini
+        ->orderBy('created_at', 'asc')->get();
     }
 
     public function headings(): array
@@ -20,18 +21,26 @@ class IncomingExport implements FromCollection, WithHeadings, WithMapping
             'Tanggal',
             'Nama Barang',
             'Jumlah Masuk',
-            'Supplier',
+            'Mutasi Stok',
+            'Sisa Stok Akhir',
+            'Total Harga (Rp)',
             'Dibuat Pada'
         ];
     }
 
     public function map($row): array
     {
-        return [
+    // Hitung Stok Awal
+        $stokAwal = isset($row->sisa_stok) ? ($row->sisa_stok - $row->jumlah) : 0;
+        $sisa = $row->sisa_stok ?? 0;
+
+    return [
             $row->tanggal,
             $row->item->nama_barang ?? '-', // Ambil nama barang dari relasi
             $row->jumlah,
-            $row->supplier ?? '-',
+            "{$stokAwal} + {$row->jumlah} = {$sisa}",
+            $sisa,
+            $row->total_harga,
             $row->created_at->format('d-m-Y H:i'),
         ];
     }

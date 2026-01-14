@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB; // Tambahkan ini buat jaga-jaga
+use Illuminate\Support\Facades\Schema; // Wajib import ini
 use App\Models\Category;
 use App\Models\Division;
 
@@ -15,34 +14,49 @@ class MasterSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. DATA KATEGORI (Biarkan seperti semula)
-        // Kita gunakan upsert/create agar tidak error kalau dijalankan ulang
+        // ==========================================
+        // 1. DATA KATEGORI (BERSIHKAN DULU, LALU ISI BARU)
+        // ==========================================
+
+        // Matikan pengecekan kunci asing sementara agar bisa menghapus paksa
+        Schema::disableForeignKeyConstraints();
+
+        // HAPUS SEMUA DATA KATEGORI LAMA (Reset ID ke 1)
+        Category::truncate();
+
+        // Hidupkan kembali pengecekan
+        Schema::enableForeignKeyConstraints();
+
+        // Daftar 11 Kategori Baru
         $categories = [
-            ['nama_kategori' => 'Kertas & Amplop'],
-            ['nama_kategori' => 'Alat Tulis (Pena/Pensil)'],
-            ['nama_kategori' => 'Binder & Map'],
-            ['nama_kategori' => 'Peralatan Meja (Stapler/Pelubang)'],
+            'Alat Tulis Kantor',
+            'Kertas dan Cover',
+            'Bahan Cetak',
+            'Benda Pos',
+            'Persediaan Dokumen/Administrasi Tender',
+            'Bahan Komputer',
+            'Perabot Kantor',
+            'Alat Listrik',
+            'Perlengkapan Pendukung Olahraga',
+            'Souvenir/Cendera Mata',
+            'Alat/Bahan untuk Kegiatan Kantor Lainnya',
         ];
 
-        foreach ($categories as $cat) {
-            // Cek dulu biar gak dobel
-            if (Category::where('nama_kategori', $cat['nama_kategori'])->doesntExist()) {
-                Category::create($cat);
-            }
+        foreach ($categories as $namaKategori) {
+            Category::create(['nama_kategori' => $namaKategori]);
         }
 
-        // 2. DATA DIVISI (INI YANG KITA UBAH SESUAI REQUEST)
-        // Sekretariat, PSDM, KM, KAI
+        // ==========================================
+        // 2. DATA DIVISI (UPDATE/TAMBAH)
+        // ==========================================
         $divisions = [
-            ['id' => 1, 'nama_bidang' => 'Sekretariat'], // ID 1 biasanya untuk Admin/Sekretariat
-            ['id' => 2, 'nama_bidang' => 'PSDM (Pengembangan Sumber Daya Manuasia'],
+            ['id' => 1, 'nama_bidang' => 'Sekretariat'],
+            ['id' => 2, 'nama_bidang' => 'PSDM (Pengembangan Sumber Daya Manusia)'],
             ['id' => 3, 'nama_bidang' => 'PM (Pengadaan dan Mutasi)'],
-            ['id' => 4, 'nama_bidang' => 'KAI (Kinerja Aparatur dan Informasi) '],
+            ['id' => 4, 'nama_bidang' => 'KAI (Kinerja Aparatur dan Informasi)'],
         ];
 
         foreach ($divisions as $div) {
-            // Kita pakai updateOrCreate.
-            // Artinya: Jika ID 1 sudah ada, update namanya. Jika belum, buat baru.
             Division::updateOrCreate(
                 ['id' => $div['id']],
                 ['nama_bidang' => $div['nama_bidang']]

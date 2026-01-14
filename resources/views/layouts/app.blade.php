@@ -147,6 +147,15 @@
                         <a href="#" class="burger-btn d-block d-xl-none">
                             <i class="bi bi-justify fs-3"></i>
                         </a>
+                        {{-- FITUR BARU: TOTAL ASET (ADMIN ONLY) --}}
+                        @if (Auth::check() && Auth::user()->role == 'admin')
+                            <div class="ms-3 d-none d-md-block">
+                                <span class="text-muted small">Total Aset:</span>
+                                <span class="fw-bold text-primary fs-5">
+                                    Rp {{ number_format($totalAsetGlobal, 0, ',', '.') }}
+                                </span>
+                            </div>
+                        @endif
 
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                             data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
@@ -162,8 +171,8 @@
                                     aria-hidden="true" role="img" class="iconify iconify--system-uicons"
                                     width="20" height="20" preserveAspectRatio="xMidYMid meet"
                                     viewBox="0 0 21 21">
-                                    <g fill="none" fill-rule="evenodd" stroke="currentColor" stroke-linecap="round"
-                                        stroke-linejoin="round">
+                                    <g fill="none" fill-rule="evenodd" stroke="currentColor"
+                                        stroke-linecap="round" stroke-linejoin="round">
                                         <path
                                             d="M10.5 14.5c2.219 0 4-1.763 4-3.982a4.003 4.003 0 0 0-4-4.018c-2.219 0-4 1.781-4 4c0 2.219 1.781 4 4 4zM4.136 4.136L5.55 5.55m9.9 9.9l1.414 1.414M1.5 10.5h2m14 0h2M4.135 16.863L5.55 15.45m9.899-9.9l1.414-1.415M10.5 19.5v-2m0-14v-2"
                                             opacity=".3"></path>
@@ -271,6 +280,8 @@
         </div>
     </div>
 
+    {{-- Letakkan di dalam <head> atau sebelum </body> --}}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('assets/static/js/components/dark.js') }}"></script>
     <script src="{{ asset('assets/extensions/perfect-scrollbar/perfect-scrollbar.min.js') }}"></script>
     <script src="{{ asset('assets/compiled/js/app.js') }}"></script>
