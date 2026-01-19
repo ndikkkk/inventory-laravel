@@ -1,6 +1,6 @@
-# Sistem Informasi Inventaris Barang (Si-ATK) 📦
+# SMART-ASSET BKPSDM 📦
 
-Sistem Informasi Manajemen Inventaris Alat Tulis Kantor (ATK) berbasis web.  
+**Sistem Informasi Manajemen Logistik & Pemeliharaan Aset** berbasis web.  
 Project ini dikembangkan sebagai bagian dari **Program Magang di BKPSDM Kabupaten Boyolali**.
 
 ![Laravel](https://img.shields.io/badge/Laravel-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)
@@ -9,27 +9,38 @@ Project ini dikembangkan sebagai bagian dari **Program Magang di BKPSDM Kabupate
 
 ## 📖 Tentang Project
 
-Aplikasi ini bertujuan untuk mendigitalkan proses pencatatan keluar-masuk barang (ATK) yang sebelumnya manual. Sistem ini memfasilitasi permintaan barang dari setiap Bidang/Divisi dengan sistem **Approval (Persetujuan)** oleh Admin, serta menyediakan laporan otomatis dalam bentuk PDF dan Excel.
+**SMART-ASSET BKPSDM** adalah transformasi digital untuk pengelolaan sumber daya logistik instansi. Tidak hanya mencatat keluar-masuk barang habis pakai (ATK), sistem ini juga dirancang untuk mencatat riwayat pemeliharaan aset (Servis Kendaraan/Elektronik) secara terpadu.
 
-## ✨ Fitur Utama
+Sistem ini menerapkan **"Smart Calculation"**, dimana sistem secara cerdas memisahkan perhitungan antara **Nilai Aset Fisik (Stok Gudang)** dan **Beban Operasional (Jasa Servis)** untuk menjaga akurasi laporan keuangan/inventaris.
 
-### 🔐 Multi-Level User (Role)
-* **Admin:** Memiliki akses penuh (Kelola Barang, Input Stok Masuk, Acc/Tolak Pengajuan, Cetak Laporan).
-* **User Bidang:** Mengajukan permintaan barang, melihat riwayat pengajuan, dan cek status (Menunggu/Disetujui/Ditolak).
+## ✨ Fitur Unggulan
 
-### 📊 Manajemen Barang
-* **Dashboard:** Ringkasan jumlah barang, kategori, dan transaksi terbaru.
-* **Stok Masuk (Restock):** Input penambahan stok barang dari supplier.
-* **Stok Keluar (Pengajuan):** Form permintaan barang dengan validasi stok real-time.
+### 1. Manajemen Logistik (Inventory)
+* **Stok Masuk (Restock):** Input belanja barang dari supplier untuk menambah stok gudang.
+* **Permintaan Barang:** Bidang/Divisi dapat mengajukan permintaan barang secara digital.
+* **Validasi Stok Real-time:** Sistem otomatis menolak permintaan jika stok fisik tidak mencukupi.
 
-### ✅ Sistem Approval (Persetujuan)
-* Bidang mengajukan barang -> Status **Pending (Menunggu)**.
-* Admin meninjau pengajuan -> Klik **Approve (Setuju)** atau **Reject (Tolak)**.
-* Stok hanya berkurang otomatis jika status **Approved**.
+### 2. Pencatatan Pemeliharaan (Maintenance) 🛠️
+* **Riwayat Servis:** Mencatat pengeluaran jasa (Servis Mobil, Ganti Oli, Service AC, dll).
+* **Monitoring KM:** Mencatat Kilometer (KM) kendaraan saat servis untuk pemantauan berkala.
+* **Non-Asset Expense:** Biaya servis tercatat sebagai pengeluaran (expense) tanpa mengurangi nilai aset stok gudang.
 
-### 🖨️ Laporan & Ekspor
-* **Cetak PDF:** Laporan Barang Masuk, Barang Keluar, Sisa Stok, dan Form Pengajuan.
-* **Ekspor Excel:** Rekapitulasi data untuk administrasi lebih lanjut.
+### 3. Sistem Approval Berjenjang
+* **User Bidang:** Mengajukan permintaan -> Status *Pending*.
+* **Admin:** Meninjau pengajuan -> Klik *Approve* atau *Reject*.
+* **Otomatisasi:** Stok hanya berkurang jika status telah disetujui (Approved) oleh Admin.
+
+### 4. Pelaporan Cerdas (Smart Reporting) 🖨️
+* **Laporan Gabungan PDF:** Menyajikan tabel Mutasi Barang dan Tabel Pemeliharaan secara terpisah dalam satu dokumen.
+* **Ringkasan Eksekutif:** Menampilkan perhitungan **Total Aset Akhir** (Harta) vs **Total Anggaran Terpakai** (Pengeluaran) secara otomatis.
+* **Export Excel:** Rekapitulasi data untuk kebutuhan administrasi lebih lanjut.
+
+## 👥 Hak Akses (Role)
+
+| Role | Deskripsi |
+| :--- | :--- |
+| **Admin** | Akses penuh (Kelola Master Barang, Input Belanja, Input Pemeliharaan, Acc/Tolak Pengajuan, Cetak Laporan). |
+| **Bidang** | Mengajukan permintaan barang, melihat riwayat pengajuan sendiri, dan memantau status persetujuan. |
 
 ## 🛠️ Teknologi yang Digunakan
 
@@ -38,9 +49,9 @@ Aplikasi ini bertujuan untuk mendigitalkan proses pencatatan keluar-masuk barang
 * **Database:** MySQL
 * **Frontend:** Blade Templates, Bootstrap 5 (Mazer Admin Template)
 * **Library Tambahan:**
-    * `barryvdh/laravel-dompdf` (Cetak PDF)
-    * `maatwebsite/excel` (Export Excel)
-    * `simple-datatables` (Tabel interaktif)
+    * `barryvdh/laravel-dompdf` (Cetak PDF Laporan)
+    * `maatwebsite/excel` (Export Data Excel)
+    * `simple-datatables` (Tabel interaktif & Searchable)
 
 ## 🚀 Cara Instalasi (Localhost)
 
@@ -65,7 +76,7 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
     DB_CONNECTION=mysql
     DB_HOST=127.0.0.1
     DB_PORT=3306
-    DB_DATABASE= db_atk <-- ubah ke database pribadi
+    DB_DATABASE=db_atk  <-- Pastikan database sudah dibuat di phpMyAdmin
     DB_USERNAME=root
     DB_PASSWORD=
     ```
@@ -75,7 +86,7 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
     php artisan key:generate
     php artisan migrate --seed
     ```
-    *(Gunakan `--seed` jika ada data dummy user/admin)*
+    *(Gunakan `--seed` untuk mengisi data dummy User Admin & Bidang)*
 
 5.  **Jalankan Project**
     ```bash
@@ -87,5 +98,5 @@ Ikuti langkah ini untuk menjalankan project di komputer Anda:
 
 ## 👨‍💻 Author
 
-**Andhika Alvin Adhzikra** Mahasiswa Magang - BKPSDM Boyolali  
+**Andhika Alvin Adhzikra** Mahasiswa Magang - BKPSDM Kabupaten Boyolali  
 GitHub: [@ndikkkk](https://github.com/ndikkkk)

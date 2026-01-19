@@ -22,7 +22,7 @@ class DashboardController extends Controller
         // Transaksi Hari Ini
         $transaksiMasukToday  = IncomingTransaction::whereDate('tanggal', date('Y-m-d'))->count();
         $transaksiKeluarToday = OutgoingTransaction::whereDate('tanggal', date('Y-m-d'))->where('status', 'approved')->count();
-        
+
         // Total Aset (Untuk body dashboard, kalau mau ditampilkan lagi selain di navbar)
         $totalAset = Item::sum(DB::raw('stok_saat_ini * harga_satuan'));
 
@@ -86,6 +86,7 @@ class DashboardController extends Controller
         // 4. TOP 5 BARANG KELUAR
         $top5Items = OutgoingTransaction::select('item_id', DB::raw('sum(jumlah) as total'))
             ->where('status', 'approved')
+            ->whereNotNull('item_id')
             ->with('item')
             ->groupBy('item_id')
             ->orderByDesc('total')

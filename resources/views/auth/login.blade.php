@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Inventory ATK BKPSDM</title>
+    <title>Login</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -81,7 +81,7 @@
 
     <div class="login-card">
         <div class="text-center mb-5">
-            <div class="brand-logo mb-2">SI-ATK</div>
+            <div class="brand-logo mb-2">SMART-ASSET BKPSDM</div>
             <h5 class="fw-bold text-dark">Selamat Datang</h5>
             <p class="text-secondary small">Silakan login untuk mengelola inventory BKPSDM Boyolali</p>
         </div>

@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title') - Inventory ATK</title>
+    <title>SMART-ASSET BKPSDM Boyolali</title>
+    <link rel="shortcut icon" href="{{ asset('images/logo_boyolali.png') }}" type="image/x-icon">
 
     <link rel="stylesheet" href="{{ asset('assets/compiled/css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/compiled/css/app-dark.css') }}">
@@ -34,13 +35,17 @@
                                 <img src="{{ asset('images/logo_boyolali.png') }}" alt="Logo"
                                     style="height: 45px; width: auto;">
                                 <div class="d-flex flex-column justify-content-center text-start">
+                                    {{-- JUDUL UTAMA: SMART ASSET --}}
+                                    {{-- Saya sesuaikan font-size sedikit biar muat dan rapi --}}
                                     <h5 class="m-0 fw-bolder text-bkpsdm"
-                                        style="font-size: 1.4rem; letter-spacing: 1px;">
-                                        BKPSDM
+                                        style="font-size: 1.1rem; letter-spacing: 0.5px;">
+                                        SMART-ASSET
                                     </h5>
+
+                                    {{-- SUB-JUDUL: BKPSDM BOYOLALI --}}
                                     <span class="text-muted"
-                                        style="font-size: 0.55rem; line-height: 1.1; max-width: 140px; text-transform: uppercase;">
-                                        Badan Kepegawaian dan Pengembangan Sumber Daya Manusia
+                                        style="font-size: 0.65rem; font-weight: bold; letter-spacing: 1px;">
+                                        BKPSDM BOYOLALI
                                     </span>
                                 </div>
                             </a>
@@ -269,9 +274,13 @@
                 </div>
 
                 <footer>
-                    <div class="footer clearfix mb-0 text-muted">
+                    <div class="footer clearfix mb-0 text-muted mt-5">
                         <div class="float-start">
-                            <p>2026 &copy; BKPSDM Boyolali</p>
+                            <p>2026 &copy; SMART-ASSET BKPSDM Boyolali</p>
+                        </div>
+                        <div class="float-end">
+                            <p>Created by <a href="https://instagram.com/andhikaalvn" target="_blank"
+                                    class="fw-bold">Andhika Alvin</a></p>
                         </div>
                     </div>
                 </footer>
