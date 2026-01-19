@@ -128,7 +128,7 @@ class OutgoingController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $query = OutgoingTransaction::with(['item', 'division'])->orderBy('created_at', 'desc');
+        $query = OutgoingTransaction::with(['item', 'division'])->orderBy('tanggal', 'asc')->orderBy('created_at', 'asc');
 
         if ($user->role == 'admin') {
             $transactions = $query->where('status', 'approved')->get();
@@ -146,7 +146,8 @@ class OutgoingController extends Controller
 
         $transactions = OutgoingTransaction::with(['item', 'division'])
             ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")
-            ->orderBy('created_at', 'desc')
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('created_at', 'asc')
             ->get();
 
         return view('transactions.outgoing.approval', compact('transactions'));
@@ -162,27 +163,103 @@ class OutgoingController extends Controller
 
          return back()->with('success', 'Pengajuan telah ditolak.');
     }
+    // Tambahkan Method Baru
+
+// 1. Tampilkan Form Khusus Pemeliharaan
+public function createMaintenance()
+{
+    $divisions = \App\Models\Division::all();
+    // Kita tidak butuh list item ATK, karena user akan input nama sparepart/jasa manual
+    return view('transactions.outgoing.maintenance_create', compact('divisions'));
+}
+
+// 2. Simpan Data Pemeliharaan
+public function storeMaintenance(Request $request)
+{
+    $request->validate([
+        'tanggal'        => 'required|date',
+        'nama_item'      => 'required|string', // Nama Jasa/Sparepart
+        'harga'          => 'required|numeric',
+        'division_id'    => 'required',
+        'km_saat_ini'    => 'nullable|integer',
+        'km_berikutnya'  => 'nullable|integer',
+    ]);
+
+    // A. Cari/Buat Kategori "Pemeliharaan Mesin"
+    $kategori = \App\Models\Category::firstOrCreate(['nama_kategori' => 'Pemeliharaan Mesin']);
+
+    // B. Buat "Barang Dummy/Jasa" secara otomatis
+    // Karena ini maintenance, kita anggap ini barang habis pakai langsung (Jasa/Oli)
+    // Kita cek dulu apakah barang dengan nama ini sudah ada di kategori pemeliharaan?
+    $item = \App\Models\Item::firstOrCreate(
+        [
+            'nama_barang' => $request->nama_item,
+            'category_id' => $kategori->id
+        ],
+        [
+            'satuan'         => 'Paket/Pcs',
+            'harga_satuan'   => $request->harga,
+            'stok_awal_2026' => 0,
+            'stok_saat_ini'  => 0 // Stok 0 karena ini jasa/langsung beli langsung pakai
+        ]
+    );
+
+    // C. Jika harga berubah, update harga master barangnya
+    $item->update(['harga_satuan' => $request->harga]);
+
+    // D. Simpan Transaksi Keluar
+    \App\Models\OutgoingTransaction::create([
+        'item_id'       => null,
+        'deskripsi'     => $request->nama_item,        'division_id'   => $request->division_id,
+        'tanggal'       => $request->tanggal,
+        'jumlah'        => 1, // Anggap 1 paket maintenance
+        'status'        => 'approved', // Langsung approved kalau admin yang input
+        'km_saat_ini'   => $request->km_saat_ini,
+        'km_berikutnya' => $request->km_berikutnya,
+        // Hitung total harga
+        'harga_satuan'  => $request->harga,
+        'total_harga'   => $request->harga, // 1 * harga
+        'sisa_stok'     => 0 // Tidak mempengaruhi stok gudang ATK
+    ]);
+
+    return redirect()->route('outgoing.index')->with('success', 'Data Pemeliharaan berhasil dicatat!');
+}
 
     // Cetak PDF Approval
     public function printApproval()
     {
-        $data = OutgoingTransaction::with(['item', 'division'])->latest()->get();
+        $data = OutgoingTransaction::with(['item', 'division'])->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")->orderBy('tanggal', 'asc')->orderBy('created_at', 'asc')->get();
         $pdf = Pdf::loadView('transactions.outgoing.pdf_approval', compact('data'));
         return $pdf->stream('Laporan-Pengajuan-Barang.pdf');
     }
 
     // Cetak PDF Barang Keluar (Approved Only)
-    public function exportPdf()
-    {
-        $data = OutgoingTransaction::with(['item', 'division'])
-                ->where('status', 'approved')
-                ->orderBy('tanggal', 'asc')
-                ->orderBy('created_at', 'asc')
-                ->get();
+    public function exportPdf(Request $request)
+{
+    // 1. Ambil Filter Tanggal
+    $tglAwal  = $request->input('tgl_awal');
+    $tglAkhir = $request->input('tgl_akhir');
 
-        $pdf = Pdf::loadView('transactions.outgoing.pdf', compact('data'));
-        return $pdf->stream('Laporan-Barang-Keluar.pdf');
+    // 2. Query Data (Hanya yang Approved)
+    $query = OutgoingTransaction::with(['item', 'division'])
+                ->where('status', 'approved');
+
+    // 3. Terapkan Filter Jika Ada
+    if (!empty($tglAwal) && !empty($tglAkhir)) {
+        $query->whereDate('tanggal', '>=', $tglAwal)
+              ->whereDate('tanggal', '<=', $tglAkhir);
     }
+
+    $data = $query->orderBy('tanggal', 'asc')->get();
+
+    // 4. Load View PDF
+    // Pastikan view-nya sesuai dengan nama file kamu
+    $pdf = Pdf::loadView('transactions.outgoing.pdf', compact('data', 'tglAwal', 'tglAkhir'));
+
+    $pdf->setPaper('a4', 'portrait');
+
+    return $pdf->stream('Laporan-Barang-Keluar.pdf');
+}
 
     // Cetak Excel
     public function exportExcel()

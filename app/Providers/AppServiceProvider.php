@@ -3,27 +3,46 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\View; // Tambahkan ini
-use App\Models\Item; // Tambahkan ini
-use Illuminate\Support\Facades\DB; // Tambahkan ini
+use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+// Import Model
+use App\Models\Item;
+use App\Models\IncomingTransaction;
+use App\Models\OutgoingTransaction;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
         //
     }
 
-    public function boot()
+    public function boot(): void
     {
-        // Logic: Hitung Total Aset (Stok * Harga) untuk ditampilkan di Navbar
-        // Gunakan View Composer (*) agar data ini ada di SEMUA halaman
+        Paginator::useBootstrap();
+
+        // --- LOGIKA HITUNG ASET HEADER (GLOBAL) ---
         View::composer('*', function ($view) {
             $totalAsetGlobal = 0;
-            
-            // Cek tabel items dulu agar tidak error saat migrasi awal
-            if (\Illuminate\Support\Facades\Schema::hasTable('items')) {
-                $totalAsetGlobal = Item::sum(DB::raw('stok_saat_ini * harga_satuan'));
+
+            if (Schema::hasTable('items') && Schema::hasTable('incoming_transactions') && Schema::hasTable('outgoing_transactions')) {
+                
+                // 1. Aset Awal (Modal)
+                $asetAwal = Item::sum(DB::raw('stok_awal_2026 * harga_satuan'));
+
+                // 2. Aset Masuk (Belanja Barang)
+                $asetMasuk = IncomingTransaction::sum('total_harga');
+
+                // 3. Aset Keluar (HANYA BARANG, JASA TIDAK DIHITUNG)
+                $asetKeluar = OutgoingTransaction::where('status', 'approved')
+                                ->whereNotNull('item_id') // <--- KUNCI: Filter hanya yang punya ID Barang
+                                ->sum('total_harga');
+
+                // 4. RUMUS ASET MURNI
+                $totalAsetGlobal = $asetAwal + $asetMasuk - $asetKeluar;
             }
 
             $view->with('totalAsetGlobal', $totalAsetGlobal);

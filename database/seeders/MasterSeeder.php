@@ -40,6 +40,7 @@ class MasterSeeder extends Seeder
             'Perlengkapan Pendukung Olahraga',
             'Souvenir/Cendera Mata',
             'Alat/Bahan untuk Kegiatan Kantor Lainnya',
+            'Pemeliharaan Mesin',
         ];
 
         foreach ($categories as $namaKategori) {

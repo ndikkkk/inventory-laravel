@@ -3,71 +3,82 @@
 <head>
     <title>Laporan Barang Masuk</title>
     <style>
-        body { font-family: sans-serif; font-size: 11px; }
+        body { font-family: sans-serif; font-size: 10px; }
         .header { text-align: center; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table, th, td { border: 1px solid black; padding: 6px; }
+        table, th, td { border: 1px solid black; padding: 4px; }
         th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .bold { font-weight: bold; }
-        /* Font khusus angka agar rumus rapi */
-        .mono { font-family: 'Courier New', monospace; font-size: 10px; }
+        .total-row { background-color: #e0e0e0; font-weight: bold; }
+        .mutasi { font-family: monospace; font-size: 9px; } /* Font khusus angka mutasi */
     </style>
 </head>
 <body>
     <div class="header">
-        <h3 style="margin: 0;">Laporan Barang Masuk</h3>
-        <p style="margin: 5px 0;">Tanggal Cetak: {{ date('d M Y') }}</p>
+        <h2 style="margin: 0;">Laporan Barang Masuk</h2>
+        @if(isset($tglAwal) && isset($tglAkhir))
+            <p style="margin: 5px 0;">Periode: {{ \Carbon\Carbon::parse($tglAwal)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($tglAkhir)->format('d M Y') }}</p>
+        @else
+            <p style="margin: 5px 0;">Periode: Semua Waktu</p>
+        @endif
+        <p style="margin: 0; font-size: 10px;">Dicetak Tanggal: {{ date('d M Y') }}</p>
     </div>
 
     <table>
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="15%">Tanggal</th>
-                <th>Nama Barang</th>
-                <th width="10%">Jml Masuk</th>
-                {{-- KOLOM BARU --}}
-                <th width="25%">Mutasi Stok</th>
-                <th width="15%">Total Harga (Rp)</th>
+                <th width="12%">Tanggal</th>
+                <th width="25%">Nama Barang</th>
+                <th width="8%">Jumlah</th>
+                <th width="18%">Mutasi Stok</th> {{-- KOLOM DIKEMBALIKAN --}}
+                <th width="16%">Harga Satuan</th>
+                <th width="16%">Total Nilai</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($data as $key => $row)
+            @foreach($data as $row)
             @php
-                // LOGIKA HITUNG MUNDUR
-                // Stok Awal = Sisa Stok Sekarang - Jumlah Masuk
-                $sisa = $row->sisa_stok;
-                $jumlah = $row->jumlah;
-                $stok_awal = isset($sisa) ? ($sisa - $jumlah) : null;
+                // Hitung mundur: Sisa Stok - Jumlah Masuk = Stok Awal
+                $stokAkhir = $row->sisa_stok;
+                $jumlahMasuk = $row->jumlah;
+                $stokAwal = $stokAkhir - $jumlahMasuk;
             @endphp
             <tr>
-                <td class="text-center">{{ $key + 1 }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($row->tanggal)->format('d M Y') }}</td>
+                <td class="text-center">{{ $loop->iteration }}</td>
+                <td class="text-center">{{ \Carbon\Carbon::parse($row->tanggal)->format('d/m/Y') }}</td>
                 <td>{{ $row->item->nama_barang ?? '[Terhapus]' }}</td>
+                <td class="text-center">{{ $row->jumlah }}</td>
 
-                <td class="text-center">
-                    <span style="color: green;">+ {{ $jumlah }}</span>
-                </td>
-
-                {{-- KOLOM MUTASI STOK --}}
-                <td class="text-center mono">
-                    @if(isset($sisa))
-                        {{-- Contoh: 90 + 10 = 100 --}}
-                        {{ $stok_awal }} + {{ $jumlah }} = <b>{{ $sisa }}</b>
+                {{-- ISI KOLOM MUTASI --}}
+                <td class="text-center mutasi">
+                    @if(isset($stokAkhir))
+                        {{ $stokAwal }} + {{ $jumlahMasuk }} = <b>{{ $stokAkhir }}</b>
                     @else
                         -
                     @endif
                 </td>
 
-                {{-- KOLOM TOTAL HARGA --}}
-                <td class="text-right">
-                    Rp {{ number_format($row->total_harga, 0, ',', '.') }}
-                </td>
+                <td class="text-right">Rp {{ number_format($row->harga_satuan, 0, ',', '.') }}</td>
+                <td class="text-right">Rp {{ number_format($row->total_harga, 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
+
+        <tfoot>
+            <tr class="total-row">
+                {{-- Colspan 3: No, Tanggal, Nama Barang --}}
+                <td colspan="3" class="text-center">TOTAL PERIODE INI</td>
+
+                <td class="text-center">{{ $data->sum('jumlah') }}</td>
+
+                <td></td> {{-- Kosongkan kolom Mutasi --}}
+                <td></td> {{-- Kosongkan kolom Harga Satuan --}}
+
+                <td class="text-right">Rp {{ number_format($data->sum('total_harga'), 0, ',', '.') }}</td>
+            </tr>
+        </tfoot>
     </table>
 </body>
 </html>

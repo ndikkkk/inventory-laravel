@@ -3,72 +3,87 @@
 <head>
     <title>Laporan Barang Keluar</title>
     <style>
-        body { font-family: sans-serif; font-size: 11px; }
+        body { font-family: sans-serif; font-size: 10px; }
         .header { text-align: center; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        table, th, td { border: 1px solid black; padding: 6px; }
+        table, th, td { border: 1px solid black; padding: 4px; }
         th { background-color: #f2f2f2; text-align: center; font-weight: bold; }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        .bold { font-weight: bold; }
-        /* Font khusus angka agar rapi */
-        .mono { font-family: 'Courier New', monospace; font-size: 10px; }
+        .total-row { background-color: #e0e0e0; font-weight: bold; }
+        .mutasi { font-family: monospace; font-size: 9px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h3 style="margin: 0;">Laporan Barang Keluar</h3>
-        <p style="margin: 5px 0;">Tanggal Cetak: {{ date('d M Y') }}</p>
+        <h2 style="margin: 0;">Laporan Barang Keluar</h2>
+        @if(isset($tglAwal) && isset($tglAkhir))
+            <p style="margin: 5px 0;">Periode: {{ \Carbon\Carbon::parse($tglAwal)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($tglAkhir)->format('d M Y') }}</p>
+        @else
+            <p style="margin: 5px 0;">Periode: Semua Waktu</p>
+        @endif
+        <p style="margin: 0; font-size: 10px;">Dicetak Tanggal: {{ date('d M Y') }}</p>
     </div>
 
     <table>
         <thead>
             <tr>
                 <th width="5%">No</th>
-                <th width="12%">Tanggal</th>
-                <th>Nama Barang</th>
-                <th>Divisi / Bidang</th>
-                <th width="8%">Jml</th>
-                {{-- KOLOM BARU --}}
-                <th width="20%">Mutasi Stok</th>
-                <th width="15%">Total Nilai (Rp)</th>
+                <th width="10%">Tanggal</th>
+                <th width="20%">Nama Barang</th>
+                <th width="15%">Divisi / Bidang</th>
+                <th width="8%">Jumlah</th>
+                <th width="16%">Mutasi Stok</th> {{-- KOLOM DIKEMBALIKAN --}}
+                <th width="13%">Harga Satuan</th>
+                <th width="13%">Total Nilai</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($data as $key => $row)
+            @foreach($data as $row)
             @php
-                // LOGIKA HITUNG MUNDUR UNTUK PDF
-                // Stok Awal = Sisa Stok Sekarang + Jumlah Keluar
-                $sisa = $row->sisa_stok;
-                $jumlah = $row->jumlah;
-                $stok_awal = isset($sisa) ? ($sisa + $jumlah) : null;
+                // Hitung mundur: Sisa Stok + Jumlah Keluar = Stok Awal
+                $stokAkhir = $row->sisa_stok;
+                $jumlahKeluar = $row->jumlah;
+                $stokAwal = $stokAkhir + $jumlahKeluar;
             @endphp
             <tr>
-                <td class="text-center">{{ $key + 1 }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($row->tanggal)->format('d M Y') }}</td>
-                <td>{{ $row->item->nama_barang ?? '[Terhapus]' }}</td>
+                <td class="text-center">{{ $loop->iteration }}</td>
+                <td class="text-center">{{ \Carbon\Carbon::parse($row->tanggal)->format('d/m/Y') }}</td>
+                <td>
+    {{ $row->item->nama_barang ?? $row->deskripsi }} 
+    @if(!$row->item_id) (Servis) @endif
+</td>
                 <td>{{ $row->division->nama_bidang ?? '-' }}</td>
+                <td class="text-center">{{ $row->jumlah }}</td>
 
-                <td class="text-center">
-                    <span style="color: red;">- {{ $jumlah }}</span>
-                </td>
-
-                {{-- KOLOM MUTASI STOK --}}
-                <td class="text-center mono">
-                    @if(isset($sisa))
-                        {{ $stok_awal }} - {{ $jumlah }} = <b>{{ $sisa }}</b>
+                {{-- ISI KOLOM MUTASI --}}
+                <td class="text-center mutasi">
+                    @if(isset($stokAkhir))
+                        {{ $stokAwal }} - {{ $jumlahKeluar }} = <b>{{ $stokAkhir }}</b>
                     @else
                         -
                     @endif
                 </td>
 
-                {{-- KOLOM TOTAL RUPIAH --}}
-                <td class="text-right">
-                    Rp {{ number_format($row->total_harga, 0, ',', '.') }}
-                </td>
+                <td class="text-right">Rp {{ number_format($row->harga_satuan, 0, ',', '.') }}</td>
+                <td class="text-right">Rp {{ number_format($row->total_harga, 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
+
+        <tfoot>
+            <tr class="total-row">
+                {{-- Colspan 4: No, Tanggal, Nama Barang, Divisi --}}
+                <td colspan="4" class="text-center">TOTAL PERIODE INI</td>
+
+                <td class="text-center">{{ $data->sum('jumlah') }}</td>
+
+                <td></td> {{-- Kosongkan Mutasi --}}
+                <td></td> {{-- Kosongkan Harga Satuan --}}
+
+                <td class="text-right">Rp {{ number_format($data->sum('total_harga'), 0, ',', '.') }}</td>
+            </tr>
+        </tfoot>
     </table>
 </body>
 </html>

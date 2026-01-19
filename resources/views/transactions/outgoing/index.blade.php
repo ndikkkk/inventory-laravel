@@ -11,15 +11,20 @@
 
             <div class="d-flex gap-2">
                 {{-- 1. TOMBOL TAMBAH / AJUKAN --}}
-                <a href="{{ route('outgoing.create') }}" class="btn btn-primary btn-sm">
+                <a href="{{ route('outgoing.create') }}" class="btn btn-primary ms-2">
                     <i class="bi bi-plus"></i>
                     {{ Auth::user()->role == 'admin' ? 'Input Baru' : 'Ajukan Permintaan' }}
                 </a>
+                {{-- TOMBOL PEMELIHARAAN (HANYA ADMIN) --}}
+                @if (Auth::user()->role == 'admin')
+                    <a href="{{ route('outgoing.maintenance') }}" class="btn btn-warning ms-2">
+                        <i class="bi bi-wrench-adjustable"></i> Input Pemeliharaan
+                    </a>
+                @endif
             </div>
         </div>
 
         <div class="card-body">
-            {{-- TAMBAHKAN KODE INI AGAR PESAN SUKSES MUNCUL --}}
             @if (session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="bi bi-check-circle me-1"></i> {{ session('success') }}
@@ -42,7 +47,6 @@
                             <th>Barang</th>
                             <th>Jumlah</th>
                             <th class="text-center">Status</th>
-                            {{-- Status dihapus sesuai request Anda --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -54,8 +58,15 @@
                                 {{-- Nama Bidang --}}
                                 <td>{{ $t->division->nama_bidang ?? 'Admin/Pusat' }}</td>
 
-                                {{-- Nama Barang --}}
-                                <td>{{ $t->item->nama_barang ?? '-' }}</td>
+                                {{-- Nama Barang (PERBAIKAN DISINI: GANTI $item JADI $t) --}}
+                                <td>
+                                    @if ($t->item_id)
+                                        {{ $t->item->nama_barang }}
+                                    @else
+                                        <span class="text-primary fw-bold">{{ $t->deskripsi }}</span>
+                                        <small class="text-muted d-block">(Pemeliharaan)</small>
+                                    @endif
+                                </td>
 
                                 {{-- Jumlah + Satuan (Misal: 5 Rim) --}}
                                 <td>
@@ -81,7 +92,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-3 text-muted">
+                                <td colspan="5" class="text-center py-3 text-muted">
                                     Belum ada riwayat barang keluar.
                                 </td>
                             </tr>

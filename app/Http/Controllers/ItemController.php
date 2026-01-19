@@ -7,47 +7,71 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Imports\ItemImport;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\ItemsExport; // Nanti kita buat file ini
+use App\Exports\ItemsExport;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Models\IncomingTransaction;
+use App\Models\IncomingTransaction; // PENTING: Untuk catat riwayat masuk
 use App\Models\OutgoingTransaction;
-use Illuminate\Support\Facades\Schema; // Pastikan ini ada
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon; // PENTING: Untuk tanggal otomatis
 
 class ItemController extends Controller
 {
     // 1. TAMPILKAN SEMUA BARANG
     public function index()
     {
-        $items = Item::with('category')->orderBy('updated_at', 'desc')->get(); // Ambil data + nama kategorinya
+        // Urutkan berdasarkan updated_at desc agar barang yang baru diedit/ditambah muncul paling atas
+        $items = Item::with('category')->orderBy('updated_at', 'desc')->get(); 
         return view('items.index', compact('items'));
     }
 
     // 2. FORM TAMBAH BARANG
     public function create()
     {
-        $categories = Category::all(); // Kirim data kategori untuk dropdown
+        $categories = Category::all();
         return view('items.create', compact('categories'));
     }
 
-    // 3. SIMPAN BARANG BARU
+    // 3. SIMPAN BARANG BARU (DIPERBARUI REVISI NO. 4)
     public function store(Request $request)
     {
         $request->validate([
-            'nama_barang' => 'required',
-            'category_id' => 'required',
-            'satuan' => 'required',
+            'nama_barang'  => 'required',
+            'category_id'  => 'required',
+            'satuan'       => 'required',
             'harga_satuan' => 'required|numeric|min:0',
+            // Validasi Tambahan
+            'stok_awal'    => 'required|integer|min:0',
+            'sumber_data'  => 'required|in:awal,baru', 
         ]);
 
-        // Stok saat ini otomatis sama dengan stok awal saat pertama dibuat
-        Item::create([
-            'nama_barang' => $request->nama_barang,
-            'category_id' => $request->category_id,
-            'satuan' => $request->satuan,
-            'stok_saat_ini' => 0,
-            'harga_satuan' => $request->harga_satuan,
+        // LOGIKA PENENTUAN STOK AWAL 2026
+        // Jika pilih 'awal': Masuk ke stok_awal_2026 (Modal Awal)
+        // Jika pilih 'baru': stok_awal_2026 tetap 0 (Dianggap pembelian tahun berjalan)
+        $stokAwalMaster = ($request->sumber_data == 'awal') ? $request->stok_awal : 0;
+
+        // 1. Simpan ke Master Barang
+        $item = Item::create([
+            'nama_barang'    => $request->nama_barang,
+            'category_id'    => $request->category_id,
+            'satuan'         => $request->satuan,
+            'harga_satuan'   => $request->harga_satuan,
+            'stok_awal_2026' => $stokAwalMaster, // Simpan sesuai logika di atas
+            'stok_saat_ini'  => $request->stok_awal, // Stok gudang pasti terisi sejumlah input
         ]);
+
+        // 2. LOGIKA KHUSUS: Jika "Belanja Baru", catat ke IncomingTransaction
+        // Agar masuk ke Laporan Barang Masuk & Grafik
+        if ($request->sumber_data == 'baru' && $request->stok_awal > 0) {
+            IncomingTransaction::create([
+                'item_id'      => $item->id,
+                'tanggal'      => Carbon::now(), // Tanggal hari ini
+                'jumlah'       => $request->stok_awal,
+                'harga_satuan' => $request->harga_satuan,
+                'total_harga'  => $request->stok_awal * $request->harga_satuan,
+                'sisa_stok'    => $request->stok_awal // Karena barang baru, sisanya = jumlah masuk
+            ]);
+        }
 
         return redirect()->route('items.index')->with('success', 'Barang berhasil ditambahkan!');
     }
@@ -65,15 +89,15 @@ class ItemController extends Controller
         $request->validate([
             'nama_barang' => 'required',
             'category_id' => 'required',
-            'satuan' => 'required',
+            'satuan'      => 'required',
+            'harga_satuan'=> 'required|numeric', // Tambahkan validasi harga
         ]);
 
-        // Note: Stok tidak diupdate manual di sini, tapi lewat transaksi nanti.
-        // Di sini hanya update info barang.
         $item->update([
-            'nama_barang' => $request->nama_barang,
-            'category_id' => $request->category_id,
-            'satuan' => $request->satuan,
+            'nama_barang'  => $request->nama_barang,
+            'category_id'  => $request->category_id,
+            'satuan'       => $request->satuan,
+            'harga_satuan' => $request->harga_satuan, // Update harga master
         ]);
 
         return redirect()->route('items.index')->with('success', 'Data barang diperbarui!');
@@ -88,76 +112,54 @@ class ItemController extends Controller
 
     // IMPORT CSV/EXCEL
     public function import(Request $request)
-{
-    $request->validate([
-        'file' => 'required|mimes:csv,xls,xlsx'
-    ]);
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,xls,xlsx'
+        ]);
 
-    try {
-        // Coba Import
-        Excel::import(new ItemImport, $request->file('file'));
+        try {
+            Excel::import(new ItemImport, $request->file('file'));
+            return redirect()->route('items.index')->with('success', 'Data barang BERHASIL diimport!');
 
-        // Jika berhasil (tidak ada error)
-        return redirect()->route('items.index')->with('success', 'Data barang BERHASIL diimport!');
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $pesanError = 'Gagal Import! Ada data yang salah: ';
+            foreach ($failures as $failure) {
+                $baris = $failure->row();
+                $error = $failure->errors()[0];
+                $pesanError .= " (Baris $baris: $error)";
+            }
+            return back()->with('error', $pesanError);
 
-    } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-        // JIKA GAGAL VALIDASI (Misal ada ID 13)
-        $failures = $e->failures();
-
-        $pesanError = 'Gagal Import! Ada data yang salah: ';
-        foreach ($failures as $failure) {
-            $baris = $failure->row(); // Baris ke berapa
-            $error = $failure->errors()[0]; // Pesan errornya
-            $pesanError .= " (Baris $baris: $error)";
+        } catch (\Exception $e) {
+            return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
-
-        return back()->with('error', $pesanError);
-
-    } catch (\Exception $e) {
-        // JIKA ERROR LAINNYA
-        return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
     }
-}
 
-    // --- FITUR BARU: CETAK EXCEL ---
+    // CETAK EXCEL MASTER
     public function exportExcel()
     {
-        // Kita butuh buat class Export dulu (nanti saya kasih kodenya di bawah)
         return Excel::download(new ItemsExport, 'Data-Stok-Barang.xlsx');
     }
 
-    // CETAK LAPORAN STOK (PDF VIEW)
+    // CETAK PDF STOK MASTER
     public function printStock()
     {
-        // Ambil semua data barang, urutkan berdasarkan kategori biar rapi ceknya
         $items = Item::with('category')->orderBy('category_id')->get();
-
-        // Load view khusus PDF (pastikan view 'items.pdf_stock' dibuat nanti)
         $pdf = PDF::loadView('items.print_stock', compact('items'));
-
-        // Stream / Download
         return $pdf->stream('Laporan-Stok-Barang.pdf');
     }
 
+    // RESET SYSTEM
     public function deleteAll()
     {
-        // 1. Matikan Pengecekan Kunci Asing (Foreign Key)
-        // Agar kita bisa menghapus data secara paksa tanpa error relasi
         Schema::disableForeignKeyConstraints();
-
-        // 2. HAPUS RIWAYAT TRANSAKSI (Incoming & Outgoing)
-        // truncate() akan menghapus semua isi tabel & mereset ID kembali ke 1
-        IncomingTransaction::truncate(); // Hapus Laporan Masuk
-        OutgoingTransaction::truncate(); // Hapus Laporan Keluar, Pengajuan, Pending, History
-
-        // 3. HAPUS MASTER BARANG
-        Item::truncate(); // Hapus semua data barang
-
-        // 4. Hidupkan Kembali Pengecekan Kunci Asing
+        IncomingTransaction::truncate(); 
+        OutgoingTransaction::truncate(); 
+        Item::truncate(); 
         Schema::enableForeignKeyConstraints();
 
-        // 5. Kembali ke halaman barang dengan pesan sukses
         return redirect()->route('items.index')
-            ->with('success', 'SYSTEM RESET: Semua Barang, Laporan, & Riwayat Pengajuan BERHASIL DIHAPUS TOTAL (0)!');
+            ->with('success', 'SYSTEM RESET: Semua Barang & Laporan BERHASIL DIHAPUS TOTAL (0)!');
     }
 }

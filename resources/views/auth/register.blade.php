@@ -84,7 +84,7 @@
                     @endforeach
                 </select>
                 <div class="form-text text-muted" style="font-size: 0.75rem;">
-                    *Jika memilih <b>Sekretariat</b>, akun otomatis menjadi <b>Administrator</b>.
+                    *Jika memilih <b>Sekretariat</b>, akun otomatis menjadi <b>Admin</b>.
                 </div>
             </div>
 

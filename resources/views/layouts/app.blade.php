@@ -149,14 +149,13 @@
                         </a>
                         {{-- FITUR BARU: TOTAL ASET (ADMIN ONLY) --}}
                         @if (Auth::check() && Auth::user()->role == 'admin')
-                            <div class="ms-3 d-none d-md-block">
-                                <span class="text-muted small">Total Aset:</span>
-                                <span class="fw-bold text-primary fs-5">
-                                    Rp {{ number_format($totalAsetGlobal, 0, ',', '.') }}
+                            <div class="ms-4 d-none d-md-block d-flex align-items-center">
+                                <span class="text-muted me-1" style="font-size: 14px;">Total Aset:</span>
+                                <span class="fw-bold text-primary" style="font-size: 18px;">
+                                    Rp {{ number_format($totalAsetGlobal ?? 0, 0, ',', '.') }}
                                 </span>
                             </div>
                         @endif
-
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                             data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
                             aria-expanded="false" aria-label="Toggle navigation">
@@ -222,7 +221,7 @@
                                             </h6>
                                             <p class="mb-0 text-sm text-gray-600">
                                                 @if (Auth::user()->role == 'admin')
-                                                    Administrator
+                                                    Sekretariat
                                                 @else
                                                     Bidang {{ Auth::user()->division->nama_bidang ?? 'Staff' }}
                                                 @endif

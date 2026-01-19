@@ -13,12 +13,30 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. DATA GRAFIK STOK
+        // ==========================================
+        // A. DATA KARTU STATISTIK (RINGKASAN ATAS)
+        // ==========================================
+        $totalBarang = Item::count();
+        // Stok Menipis (Misal kurang dari 5)
+        $stokMenipis = Item::where('stok_saat_ini', '<', 5)->count();
+        // Transaksi Hari Ini
+        $transaksiMasukToday  = IncomingTransaction::whereDate('tanggal', date('Y-m-d'))->count();
+        $transaksiKeluarToday = OutgoingTransaction::whereDate('tanggal', date('Y-m-d'))->where('status', 'approved')->count();
+        
+        // Total Aset (Untuk body dashboard, kalau mau ditampilkan lagi selain di navbar)
+        $totalAset = Item::sum(DB::raw('stok_saat_ini * harga_satuan'));
+
+
+        // ==========================================
+        // B. DATA GRAFIK & TABEL
+        // ==========================================
+
+        // 1. DATA GRAFIK STOK BARANG
         $items = Item::all();
         $labelBarang = $items->pluck('nama_barang')->toArray();
-        $dataStok = $items->pluck('stok_saat_ini')->toArray();
+        $dataStok    = $items->pluck('stok_saat_ini')->toArray();
 
-        // 2. DATA PIE CHART (Barang Keluar per Divisi)
+        // 2. DATA PIE CHART (Penggunaan per Divisi)
         $pieData = OutgoingTransaction::select('division_id', DB::raw('sum(jumlah) as total'))
             ->where('status', 'approved')
             ->with('division')
@@ -28,35 +46,36 @@ class DashboardController extends Controller
         $grandTotal = $pieData->sum('total');
         $labelDivisi = $pieData->pluck('division.nama_bidang')->toArray();
 
-        // Hitung Persentase
+        // Hitung Persentase untuk Pie Chart
         $dataDivisi = $pieData->map(function($item) use ($grandTotal) {
-            if ($grandTotal == 0) return 0;
-            return round(($item->total / $grandTotal) * 100, 2);
+            return $grandTotal > 0 ? round(($item->total / $grandTotal) * 100, 2) : 0;
         })->toArray();
 
-        // 3. DATA GRAFIK BULANAN (Tahun Ini)
+        // 3. DATA GRAFIK BULANAN (Area Chart)
         $monthlyIncoming = array_fill(1, 12, 0);
         $monthlyOutgoing = array_fill(1, 12, 0);
+        $currentYear = date('Y');
 
-        // Data Masuk
+        // Query Masuk
         $incoming = IncomingTransaction::select(
             DB::raw('MONTH(tanggal) as month'),
             DB::raw('SUM(jumlah) as total')
         )
-        ->whereYear('tanggal', date('Y'))
+        ->whereYear('tanggal', $currentYear)
         ->groupBy('month')
         ->pluck('total', 'month');
 
-        // Data Keluar (Approved)
+        // Query Keluar
         $outgoing = OutgoingTransaction::select(
             DB::raw('MONTH(tanggal) as month'),
             DB::raw('SUM(jumlah) as total')
         )
         ->where('status', 'approved')
-        ->whereYear('tanggal', date('Y'))
+        ->whereYear('tanggal', $currentYear)
         ->groupBy('month')
         ->pluck('total', 'month');
 
+        // Mapping ke array 1-12
         foreach ($incoming as $month => $total) {
             $monthlyIncoming[$month] = $total;
         }
@@ -64,7 +83,7 @@ class DashboardController extends Controller
             $monthlyOutgoing[$month] = $total;
         }
 
-        // 4. TOP 5 BARANG SERING KELUAR
+        // 4. TOP 5 BARANG KELUAR
         $top5Items = OutgoingTransaction::select('item_id', DB::raw('sum(jumlah) as total'))
             ->where('status', 'approved')
             ->with('item')
@@ -73,7 +92,7 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // 5. [BARU] TOP 5 BARANG SERING MASUK
+        // 5. TOP 5 BARANG MASUK (RESTOCK)
         $top5Incoming = IncomingTransaction::select('item_id', DB::raw('sum(jumlah) as total'))
             ->with('item')
             ->groupBy('item_id')
@@ -81,11 +100,16 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        // Kirim semua data ke View
         return view('dashboard.index', compact(
+            // Data Kartu
+            'totalBarang', 'stokMenipis', 'transaksiMasukToday', 'transaksiKeluarToday', 'totalAset',
+            // Data Grafik
             'labelBarang', 'dataStok',
             'labelDivisi', 'dataDivisi',
             'monthlyIncoming', 'monthlyOutgoing',
-            'top5Items', 'top5Incoming' // Tambahkan ini
+            // Data Tabel Top 5
+            'top5Items', 'top5Incoming'
         ));
     }
 }

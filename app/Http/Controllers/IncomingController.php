@@ -55,12 +55,32 @@ $total = $request->jumlah * $hargaDariMaster;
     }
 
     // --- FITUR BARU: CETAK PDF BARANG MASUK ---
-    public function exportPdf()
-    {
-        $data = IncomingTransaction::with('item')->orderBy('tanggal', 'asc')->orderBy('created_at','asc')->get();
-        $pdf = PDF::loadView('transactions.incoming.pdf', compact('data'));
-        return $pdf->stream('Laporan-Barang-Masuk.pdf');
+    public function exportPdf(Request $request)
+{
+    // 1. Ambil Filter Tanggal
+    $tglAwal  = $request->input('tgl_awal');
+    $tglAkhir = $request->input('tgl_akhir');
+
+    // 2. Query Data
+    $query = IncomingTransaction::with('item');
+
+    // 3. Terapkan Filter Jika Ada
+    if (!empty($tglAwal) && !empty($tglAkhir)) {
+        $query->whereDate('tanggal', '>=', $tglAwal)
+              ->whereDate('tanggal', '<=', $tglAkhir);
     }
+
+    $data = $query->orderBy('tanggal', 'asc')->get();
+
+    // 4. Load View PDF
+    // Pastikan view-nya sesuai dengan nama file kamu (misal: transactions.incoming.pdf)
+    $pdf = Pdf::loadView('transactions.incoming.pdf', compact('data', 'tglAwal', 'tglAkhir'));
+
+    // Set kertas Portrait/Landscape sesuai selera
+    $pdf->setPaper('a4', 'portrait');
+
+    return $pdf->stream('Laporan-Barang-Masuk.pdf');
+}
 
     // --- FITUR BARU: CETAK EXCEL BARANG MASUK ---
     public function exportExcel()

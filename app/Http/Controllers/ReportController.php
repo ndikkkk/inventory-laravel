@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; // 1. WAJIB IMPORT INI
 use App\Models\IncomingTransaction;
 use App\Models\OutgoingTransaction;
-use App\Models\Item; // Jangan lupa import model Item
+use App\Models\Item;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
@@ -15,8 +16,8 @@ class ReportController extends Controller
     {
         // 1. Data Masuk
         $masuk = IncomingTransaction::with('item')
-                    ->orderBy('tanggal', 'desc')
-                    ->orderBy('created_at', 'desc')
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('created_at', 'asc')
                     ->get()
                     ->map(function($item){
                         $item->jenis = 'masuk';
@@ -26,8 +27,8 @@ class ReportController extends Controller
         // 2. Data Keluar (Approved)
         $keluar = OutgoingTransaction::with(['item', 'division'])
                     ->where('status', 'approved')
-                    ->orderBy('tanggal', 'desc')
-                    ->orderBy('created_at', 'desc')
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('created_at', 'asc')
                     ->get()
                     ->map(function($item){
                         $item->jenis = 'keluar';
@@ -35,75 +36,101 @@ class ReportController extends Controller
                     });
 
         // 3. Gabungan
-        $gabungan = $masuk->concat($keluar)->sortByDesc(function($item) {
+        $gabungan = $masuk->concat($keluar)->sortBy(function($item) {
             return $item->tanggal . $item->created_at;
         });
 
         return view('reports.index', compact('masuk', 'keluar', 'gabungan'));
     }
 
-    // EXPORT PDF GABUNGAN (FIXED ERROR Undefined Variable)
-    public function exportAllPdf()
+    // EXPORT PDF GABUNGAN (REVISI PEMISAHAN)
+    public function exportAllPdf(Request $request)
     {
-        // 1. Ambil Data Masuk
-        $masuk = IncomingTransaction::with('item')->get()->map(function($item){
+        $tglAwal  = $request->input('tgl_awal');
+        $tglAkhir = $request->input('tgl_akhir');
+
+        // ==========================================
+        // 1. QUERY BARANG MASUK
+        // ==========================================
+        $queryMasuk = IncomingTransaction::with('item');
+        if (!empty($tglAwal) && !empty($tglAkhir)) {
+            $queryMasuk->whereDate('tanggal', '>=', $tglAwal)
+                       ->whereDate('tanggal', '<=', $tglAkhir);
+        }
+        $masuk = $queryMasuk->get()->map(function($item){
             $item->jenis_transaksi = 'masuk';
             return $item;
         });
 
-        // 2. Ambil Data Keluar
-        $keluar = OutgoingTransaction::with(['item', 'division'])
-            ->where('status', 'approved')
-            ->get()
-            ->map(function($item){
-                $item->jenis_transaksi = 'keluar';
-                return $item;
-            });
+        // ==========================================
+        // 2. QUERY BARANG KELUAR (HANYA ITEM FISIK)
+        // ==========================================
+        $queryKeluarBarang = OutgoingTransaction::with(['item', 'division'])
+                        ->where('status', 'approved')
+                        ->whereNotNull('item_id'); // <--- Filter Barang Only
 
-        // 3. Gabungan
-        $gabungan = $masuk->concat($keluar)->sortBy(function($item) {
+        if (!empty($tglAwal) && !empty($tglAkhir)) {
+            $queryKeluarBarang->whereDate('tanggal', '>=', $tglAwal)
+                              ->whereDate('tanggal', '<=', $tglAkhir);
+        }
+        $keluarBarang = $queryKeluarBarang->get()->map(function($item){
+            $item->jenis_transaksi = 'keluar';
+            return $item;
+        });
+
+        // ==========================================
+        // 3. QUERY PEMELIHARAAN (JASA/SERVIS)
+        // ==========================================
+        $queryMaintenance = OutgoingTransaction::with('division')
+                        ->where('status', 'approved')
+                        ->whereNull('item_id'); // <--- Filter Jasa Only (Item ID Null)
+
+        if (!empty($tglAwal) && !empty($tglAkhir)) {
+            $queryMaintenance->whereDate('tanggal', '>=', $tglAwal)
+                             ->whereDate('tanggal', '<=', $tglAkhir);
+        }
+        $maintenance = $queryMaintenance->orderBy('tanggal', 'asc')->get();
+
+        // ==========================================
+        // 4. DATA TABEL 1 (STOK GABUNGAN)
+        // ==========================================
+        $gabunganStok = $masuk->concat($keluarBarang)->sortBy(function($item) {
             return $item->tanggal . $item->created_at;
         });
 
         // ==========================================
-        // PERHITUNGAN LENGKAP (AGAR TIDAK ERROR)
+        // 5. PERHITUNGAN NILAI
         // ==========================================
 
-        // A. Total Qty
-        $totalQtyMasuk  = $masuk->sum('jumlah');
-        $totalQtyKeluar = $keluar->sum('jumlah');
+        // -- Hitungan Stok --
+        $totalQtyMasuk      = $masuk->sum('jumlah');
+        $totalQtyKeluar     = $keluarBarang->sum('jumlah');
+        $totalRupiahMasuk   = $masuk->sum('total_harga');
+        $totalRupiahKeluar  = $keluarBarang->sum('total_harga');
+        
+        // -- Hitungan Maintenance (Terpisah) --
+        $totalBiayaServis   = $maintenance->sum('total_harga');
 
-        // B. Total Nilai (Rupiah) Transaksi
-        $totalRupiahMasuk  = $masuk->sum('total_harga');
-        $totalRupiahKeluar = $keluar->sum('total_harga');
+        // -- Hitungan Aset Akhir (TIDAK DIPENGARUHI SERVIS) --
+        $totalAsetAwal = Item::sum(DB::raw('stok_awal_2026 * harga_satuan'));
+        $totalAsetAkhir = $totalAsetAwal + $totalRupiahMasuk - $totalRupiahKeluar;
 
-        // C. Grand Total Nilai (Total kolom paling kanan tabel) -> INI YANG BIKIN ERROR TADI
-        $grandTotalNilai = $gabungan->sum('total_harga');
-
-        // D. Total Aset Awal (Saldo Awal Master Barang)
-        $totalAsetAwal = Item::get()->sum(function($item){
-            return $item->stok_awal_2026 * $item->harga_satuan;
-        });
-
-        // E. Total Aset Akhir (Stok Saat Ini)
-        $totalAsetAkhir = Item::get()->sum(function($item){
-            return $item->stok_saat_ini * $item->harga_satuan;
-        });
-
-        // 4. Cetak PDF (Kirim SEMUA variabel)
+        // Cetak PDF
         $pdf = Pdf::loadView('reports.combined_pdf', compact(
-            'gabungan',
+            'gabunganStok',    // Tabel 1
+            'maintenance',     // Tabel 2
             'totalQtyMasuk',
             'totalQtyKeluar',
             'totalRupiahMasuk',
             'totalRupiahKeluar',
-            'grandTotalNilai', // <-- Sudah ditambahkan kembali
+            'totalBiayaServis', // Kirim Total Jasa
             'totalAsetAwal',
-            'totalAsetAkhir'
+            'totalAsetAkhir',
+            'tglAwal',
+            'tglAkhir'
         ));
 
         $pdf->setPaper('a4', 'landscape');
-
-        return $pdf->stream('Laporan-Seluruh-Transaksi.pdf');
+        return $pdf->stream('Laporan-Lengkap-Terpisah.pdf');
     }
 }

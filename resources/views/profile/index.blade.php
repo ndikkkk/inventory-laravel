@@ -37,7 +37,7 @@
 
                 {{-- Tampilkan Role --}}
                 <span class="badge {{ $user->role == 'admin' ? 'bg-primary' : 'bg-success' }} mb-3">
-                    {{ $user->role == 'admin' ? 'Administrator' : 'Bidang ' . ($user->division->nama_bidang ?? '-') }}
+                    {{ $user->role == 'admin' ? 'Admin' : 'Bidang ' . ($user->division->nama_bidang ?? '-') }}
                 </span>
 
                 <hr>
