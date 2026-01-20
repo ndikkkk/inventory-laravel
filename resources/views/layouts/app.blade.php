@@ -1,28 +1,23 @@
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIM-LOG BKPSDM Boyolali</title>
     <link rel="shortcut icon" href="{{ asset('images/logo_boyolali.png') }}" type="image/x-icon">
-
     <link rel="stylesheet" href="{{ asset('assets/compiled/css/app.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/compiled/css/app-dark.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/compiled/css/iconly.css') }}">
-
     <style>
         /* LOGIKA WARNA TULISAN */
         .text-bkpsdm {
             color: #25396f !important;
         }
-
         [data-bs-theme="dark"] .text-bkpsdm {
             color: #ffffff !important;
         }
     </style>
 </head>
-
 <body>
     <div id="app">
         <div id="sidebar">
@@ -41,7 +36,6 @@
                                         style="font-size: 1.1rem; letter-spacing: 0.5px;">
                                         SIM-LOG
                                     </h5>
-
                                     {{-- SUB-JUDUL: BKPSDM BOYOLALI --}}
                                     <span class="text-muted"
                                         style="font-size: 0.65rem; font-weight: bold; letter-spacing: 1px;">
@@ -52,7 +46,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="sidebar-menu">
                     <ul class="menu">
                         <li class="sidebar-title">Menu</li>
@@ -63,7 +56,6 @@
                                 <span>Dashboard</span>
                             </a>
                         </li>
-
                         {{-- KHUSUS ADMIN: DATA BARANG --}}
                         @if (Auth::user()->role == 'admin')
                             <li class="sidebar-item {{ Request::is('items*') ? 'active' : '' }}">
@@ -73,9 +65,7 @@
                                 </a>
                             </li>
                         @endif
-
                         <li class="sidebar-title">Transaksi</li>
-
                         {{-- KHUSUS ADMIN: BARANG MASUK & APPROVAL --}}
                         @if (Auth::user()->role == 'admin')
                             <li class="sidebar-item {{ Route::is('incoming.create') ? 'active' : '' }}">
@@ -84,7 +74,6 @@
                                     <span>Barang Masuk</span>
                                 </a>
                             </li>
-
                             {{-- Menu Approval Page --}}
                             <li class="sidebar-item {{ Route::is('outgoing.approval') ? 'active' : '' }}">
                                 <a href="{{ route('outgoing.approval') }}" class='sidebar-link'>
@@ -92,7 +81,6 @@
                                     <span>Persetujuan Barang</span>
                                 </a>
                             </li>
-
                             {{-- Menu History Barang Keluar (Bersih) --}}
                             <li class="sidebar-item {{ Route::is('outgoing.index') ? 'active' : '' }}">
                                 <a href="{{ route('outgoing.index') }}" class='sidebar-link'>
@@ -101,7 +89,6 @@
                                 </a>
                             </li>
                         @endif
-
                         {{-- KHUSUS BIDANG: AJUKAN & RIWAYAT --}}
                         @if (Auth::user()->role == 'bidang')
                             <li class="sidebar-item {{ Route::is('outgoing.create') ? 'active' : '' }}">
@@ -110,7 +97,6 @@
                                     <span>Ajukan Barang</span>
                                 </a>
                             </li>
-
                             <li class="sidebar-item {{ Route::is('outgoing.index') ? 'active' : '' }}">
                                 <a href="{{ route('outgoing.index') }}" class='sidebar-link'>
                                     <i class="bi bi-clock-history"></i>
@@ -118,7 +104,6 @@
                                 </a>
                             </li>
                         @endif
-
                         {{-- KHUSUS ADMIN: LAPORAN --}}
                         {{-- (Menu ini disembunyikan dari Bidang sesuai permintaan) --}}
                         @if (Auth::user()->role == 'admin')
@@ -129,7 +114,6 @@
                                 </a>
                             </li>
                         @endif
-
                         <li class="sidebar-item">
                             <form action="{{ route('logout') }}" method="POST">
                                 @csrf
@@ -144,7 +128,6 @@
                 </div>
             </div>
         </div>
-
         <div id="main" class='layout-navbar'>
             <header class='mb-3'>
                 <nav class="navbar navbar-expand navbar-light navbar-top">
@@ -166,10 +149,8 @@
                             aria-expanded="false" aria-label="Toggle navigation">
                             <span class="navbar-toggler-icon"></span>
                         </button>
-
                         <div class="collapse navbar-collapse" id="navbarSupportedContent">
                             <ul class="navbar-nav ms-auto mb-2 mb-lg-0"></ul>
-
                             <div class="theme-toggle d-flex gap-2 align-items-center mt-2 me-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
                                     aria-hidden="true" role="img" class="iconify iconify--system-uicons"
@@ -202,7 +183,6 @@
                                     </path>
                                 </svg>
                             </div>
-
                             @php
                                 $hour = date('H');
                                 if ($hour >= 3 && $hour < 11) {
@@ -215,7 +195,6 @@
                                     $greeting = 'Selamat Malam';
                                 }
                             @endphp
-
                             <div class="dropdown">
                                 <a href="#" data-bs-toggle="dropdown" aria-expanded="false">
                                     <div class="user-menu d-flex">
@@ -268,33 +247,28 @@
                 <div class="page-heading">
                     <h3>@yield('page-heading')</h3>
                 </div>
-
                 <div class="page-content">
                     @yield('content')
                 </div>
-
                 <footer>
                     <div class="footer clearfix mb-0 text-muted mt-5">
                         <div class="float-start">
-                            <p>2026 &copy; SIM-LOG BKPSDM Boyolali</p>
+                            <p>{{ date('Y') }} &copy; SIM-LOG BKPSDM Boyolali</p>
                         </div>
-                        <div class="float-end">
+                        {{--<div class="float-end">
                             <p>Created by <a href="https://instagram.com/andhikaalvn" target="_blank"
                                     class="fw-bold">Andhika Alvin</a></p>
-                        </div>
+                        </div> --}}
                     </div>
                 </footer>
             </div>
         </div>
     </div>
-
     {{-- Letakkan di dalam <head> atau sebelum </body> --}}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ asset('assets/static/js/components/dark.js') }}"></script>
     <script src="{{ asset('assets/extensions/perfect-scrollbar/perfect-scrollbar.min.js') }}"></script>
     <script src="{{ asset('assets/compiled/js/app.js') }}"></script>
-
     @stack('scripts')
 </body>
-
 </html>
