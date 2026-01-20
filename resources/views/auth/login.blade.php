@@ -81,9 +81,9 @@
 
     <div class="login-card">
         <div class="text-center mb-5">
-            <div class="brand-logo mb-2">SMART-ASSET BKPSDM</div>
+            <div class="brand-logo mb-2">SIM-LOG</div>
             <h5 class="fw-bold text-dark">Selamat Datang</h5>
-            <p class="text-secondary small">Silakan login untuk mengelola inventory BKPSDM Boyolali</p>
+            <p class="text-secondary small">Silakan login untuk melihat informasi manajemen logistik & pemeliharaan aset BKPSDM Boyolali</p>
         </div>
 
         {{-- PERBAIKAN DI SINI: MENAMPILKAN PESAN ERROR --}}

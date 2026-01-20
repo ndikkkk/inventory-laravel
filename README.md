@@ -1,4 +1,4 @@
-# SMART-ASSET BKPSDM 📦
+# SIM-LOG BKPSDM 📦
 
 **Sistem Informasi Manajemen Logistik & Pemeliharaan Aset** berbasis web.  
 Project ini dikembangkan sebagai bagian dari **Program Magang di BKPSDM Kabupaten Boyolali**.
@@ -9,7 +9,7 @@ Project ini dikembangkan sebagai bagian dari **Program Magang di BKPSDM Kabupate
 
 ## 📖 Tentang Project
 
-**SMART-ASSET BKPSDM** adalah transformasi digital untuk pengelolaan sumber daya logistik instansi. Tidak hanya mencatat keluar-masuk barang habis pakai (ATK), sistem ini juga dirancang untuk mencatat riwayat pemeliharaan aset (Servis Kendaraan/Elektronik) secara terpadu.
+**SIM-LOG BKPSDM** adalah transformasi digital untuk pengelolaan sumber daya logistik instansi. Tidak hanya mencatat keluar-masuk barang habis pakai (ATK), sistem ini juga dirancang untuk mencatat riwayat pemeliharaan aset (Servis Kendaraan/Elektronik) secara terpadu.
 
 Sistem ini menerapkan **"Smart Calculation"**, dimana sistem secara cerdas memisahkan perhitungan antara **Nilai Aset Fisik (Stok Gudang)** dan **Beban Operasional (Jasa Servis)** untuk menjaga akurasi laporan keuangan/inventaris.
 

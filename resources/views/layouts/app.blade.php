@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMART-ASSET BKPSDM Boyolali</title>
+    <title>SIM-LOG BKPSDM Boyolali</title>
     <link rel="shortcut icon" href="{{ asset('images/logo_boyolali.png') }}" type="image/x-icon">
 
     <link rel="stylesheet" href="{{ asset('assets/compiled/css/app.css') }}">
@@ -35,11 +35,11 @@
                                 <img src="{{ asset('images/logo_boyolali.png') }}" alt="Logo"
                                     style="height: 45px; width: auto;">
                                 <div class="d-flex flex-column justify-content-center text-start">
-                                    {{-- JUDUL UTAMA: SMART ASSET --}}
+                                    {{-- JUDUL UTAMA: SIM-LOG --}}
                                     {{-- Saya sesuaikan font-size sedikit biar muat dan rapi --}}
                                     <h5 class="m-0 fw-bolder text-bkpsdm"
                                         style="font-size: 1.1rem; letter-spacing: 0.5px;">
-                                        SMART-ASSET
+                                        SIM-LOG
                                     </h5>
 
                                     {{-- SUB-JUDUL: BKPSDM BOYOLALI --}}
@@ -276,7 +276,7 @@
                 <footer>
                     <div class="footer clearfix mb-0 text-muted mt-5">
                         <div class="float-start">
-                            <p>2026 &copy; SMART-ASSET BKPSDM Boyolali</p>
+                            <p>2026 &copy; SIM-LOG BKPSDM Boyolali</p>
                         </div>
                         <div class="float-end">
                             <p>Created by <a href="https://instagram.com/andhikaalvn" target="_blank"

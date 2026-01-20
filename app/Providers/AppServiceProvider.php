@@ -25,11 +25,11 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrap();
 
         // --- LOGIKA HITUNG ASET HEADER (GLOBAL) ---
-        View::composer('*', function ($view) {
+        View::composer('layouts.app', function ($view) {
             $totalAsetGlobal = 0;
 
             if (Schema::hasTable('items') && Schema::hasTable('incoming_transactions') && Schema::hasTable('outgoing_transactions')) {
-                
+
                 // 1. Aset Awal (Modal)
                 $asetAwal = Item::sum(DB::raw('stok_awal_2026 * harga_satuan'));
 
