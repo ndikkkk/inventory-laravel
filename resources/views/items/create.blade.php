@@ -86,7 +86,7 @@
                     {{-- 6. JUMLAH STOK --}}
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Jumlah Stok</label>
-                        <input type="number" name="stok_awal" class="form-control" value="0" min="0" required>
+                        <input type="number" name="stok_awal" class="form-control" placeholder="1, 2, 3, 4, ..." min="0" required>
                     </div>
                 </div>
 

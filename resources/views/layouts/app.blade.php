@@ -138,7 +138,7 @@
                         {{-- FITUR BARU: TOTAL ASET (ADMIN ONLY) --}}
                         @if (Auth::check() && Auth::user()->role == 'admin')
                             <div class="ms-4 d-none d-md-block d-flex align-items-center">
-                                <span class="text-muted me-1" style="font-size: 14px;">Total Aset:</span>
+                                <span class="text-muted me-1" style="font-size: 14px;">Total Akhir:</span>
                                 <span class="fw-bold text-primary" style="font-size: 18px;">
                                     Rp {{ number_format($totalAsetGlobal ?? 0, 0, ',', '.') }}
                                 </span>

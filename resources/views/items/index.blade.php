@@ -5,7 +5,6 @@
 
 @section('content')
     <div class="card">
-        {{-- HEADER: JUDUL DI KIRI, SEMUA TOMBOL DI KANAN --}}
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Data Stok Barang</h5>
 
@@ -37,7 +36,6 @@
         </div>
 
         <div class="card-body">
-            {{-- Menampilkan Pesan Sukses --}}
             @if (session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <i class="bi bi-check-circle me-2"></i> {{ session('success') }}
@@ -45,7 +43,6 @@
                 </div>
             @endif
 
-            {{-- Menampilkan Pesan Error (Popup Merah di Halaman) --}}
             @if (session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
@@ -62,7 +59,6 @@
                             <th>Kategori</th>
                             <th>Satuan</th>
                             <th class="text-center">Stok</th>
-                            {{-- KOLOM BARU: HARGA --}}
                             <th class="text-end">Harga Satuan</th>
                             <th>Aksi</th>
                         </tr>
@@ -75,27 +71,35 @@
                                 <td><span class="badge bg-secondary">{{ $item->category->nama_kategori ?? '-' }}</span></td>
                                 <td>{{ $item->satuan }}</td>
 
-                                {{-- Stok --}}
                                 <td class="text-center fw-bold">{{ $item->stok_saat_ini }}</td>
 
-                                {{-- TAMPILKAN HARGA (Format Rupiah) --}}
                                 <td class="text-end">
                                     Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}
                                 </td>
 
                                 <td>
                                     <div class="d-flex gap-1">
-                                        <a href="{{ route('items.edit', $item->id) }}" class="btn btn-sm btn-warning"
-                                            title="Edit">
+                                        {{-- Tombol Edit --}}
+                                        <a href="{{ route('items.edit', $item->id) }}" class="btn btn-sm btn-warning" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <form action="{{ route('items.destroy', $item->id) }}" method="POST"
-                                            onsubmit="return confirm('Yakin hapus satu barang ini?')">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
+
+                                        {{-- === BAGIAN INI YANG DIUBAH (Form Hapus Satuan) === --}}
+                                        <form id="delete-form-{{ $item->id }}"
+                                              action="{{ route('items.destroy', $item->id) }}"
+                                              method="POST"
+                                              class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            {{-- Button type="button" dan onclick ke fungsi SweetAlert --}}
+                                            <button type="button" class="btn btn-sm btn-danger" title="Hapus"
+                                                    onclick="confirmDelete('delete-form-{{ $item->id }}')">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
+                                        {{-- ================================================= --}}
+
                                     </div>
                                 </td>
                             </tr>
@@ -106,13 +110,13 @@
         </div>
     </div>
 
-    {{-- FORM TERSEMBUNYI UNTUK HAPUS SEMUA --}}
+    {{-- Form Hidden Hapus Semua --}}
     <form id="delete-all-form" action="{{ route('items.deleteAll') }}" method="POST" style="display: none;">
         @csrf
         @method('DELETE')
     </form>
 
-    {{-- MODAL IMPORT --}}
+    {{-- Modal Import --}}
     <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -143,10 +147,30 @@
         </div>
     </div>
 
-    {{-- SCRIPT SWEETALERT (Ditaruh di bawah agar rapi) --}}
+    {{-- SCRIPT JAVASCRIPT --}}
+    {{-- Kita gunakan @push('scripts') agar script ini dilempar ke bawah body di layout utama --}}
+    @push('scripts')
     <script>
+        // === 1. Fungsi Hapus SATU Barang ===
+        function confirmDelete(formId) {
+            Swal.fire({
+                title: 'Hapus barang ini?',
+                text: "Data tidak bisa dikembalikan!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(formId).submit();
+                }
+            });
+        }
+
+        // === 2. Fungsi Hapus SEMUA Barang (Yang sudah ada sebelumnya) ===
         function confirmDeleteAll() {
-            // PERINGATAN 1
             Swal.fire({
                 title: 'Hapus SEMUA Barang?',
                 text: "Semua data barang akan hilang permanen! Stok akan jadi 0.",
@@ -158,7 +182,6 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // PERINGATAN 2 (Double Check)
                     Swal.fire({
                         title: 'YAKIN?',
                         text: "Data yang dihapus tidak bisa dikembalikan!",
@@ -177,4 +200,6 @@
             })
         }
     </script>
+    @endpush
+
 @endsection
