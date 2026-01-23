@@ -22,13 +22,29 @@
                     <input type="date" name="tanggal" class="form-control" value="{{ date('Y-m-d') }}" required>
                 </div>
 
+                {{-- PILIH BARANG (DENGAN GROUPING) --}}
                 <div class="col-md-6 mb-3">
                     <label>Barang yang Diminta</label>
                     <select name="item_id" id="pilih-barang" class="form-select" required>
                         <option value="" data-satuan="-">-- Pilih Barang --</option>
-                        @foreach($items as $item)
-                            <option value="{{ $item->id }}" data-satuan="{{ $item->satuan }}">{{ $item->nama_barang }} (Sisa Stok: {{ $item->stok_saat_ini }})</option>
+                        
+                        {{-- Grouping Barang Berdasarkan Akun (Kategori) --}}
+                        @php
+                            $groupedItems = $items->groupBy(function($item) {
+                                return $item->account->nama_akun ?? 'Lainnya';
+                            });
+                        @endphp
+
+                        @foreach($groupedItems as $kategori => $listBarang)
+                            <optgroup label="{{ $kategori }}">
+                                @foreach($listBarang as $item)
+                                    <option value="{{ $item->id }}" data-satuan="{{ $item->satuan }}">
+                                        {{ $item->nama_barang }} (Sisa: {{ $item->stok_saat_ini }})
+                                    </option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
+
                     </select>
                 </div>
 
@@ -41,7 +57,6 @@
                         @endif
 
                         @foreach($divisions as $div)
-                            {{-- Logika: Jika cuma ada 1 pilihan (User Bidang), otomatis selected --}}
                             <option value="{{ $div->id }}" {{ count($divisions) == 1 ? 'selected' : '' }}>
                                 {{ $div->nama_bidang }}
                             </option>
@@ -68,9 +83,9 @@
                 <button type="submit" class="btn btn-danger">
                     {{-- Ubah Teks Tombol sesuai Role --}}
                     @if(Auth::user()->role == 'admin')
-                        <i class="fas fa-check-circle"></i> Simpan & Kurangi Stok (ACC)
+                        <i class="bi bi-check-circle"></i> Simpan & Kurangi Stok (ACC)
                     @else
-                        <i class="fas fa-paper-plane"></i> Kirim Pengajuan (Menunggu ACC)
+                        <i class="bi bi-send"></i> Kirim Pengajuan (Menunggu ACC)
                     @endif
                 </button>
             </div>

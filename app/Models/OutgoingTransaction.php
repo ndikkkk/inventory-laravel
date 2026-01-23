@@ -9,16 +9,25 @@ class OutgoingTransaction extends Model
 {
     use HasFactory;
 
+    protected $table = 'outgoing_transactions'; // Memastikan nama tabel benar
+
+    // === INI BIANG KEROKNYA ===
+    // Semua kolom ini WAJIB ada disini supaya bisa tersimpan ke database
     protected $fillable = [
-        'item_id',       // Sekarang boleh NULL (untuk servis)
-        'deskripsi',     // <--- TAMBAHAN: Nama Jasa/Servis
-        'division_id',
-    //    'user_id',       // <--- TAMBAHAN: Siapa yang input
-        'tanggal',
-        'jumlah',
-        'status', 
-        'km_saat_ini',   // <--- TAMBAHAN: Kilometer
-        'km_berikutnya', // <--- TAMBAHAN: Kilometer
+        'item_id',       // ID Barang (Bisa NULL untuk servis)
+        'division_id',   // ID Bidang
+        'user_id',       // ID Admin yang input (Opsional)
+        'tanggal',       // Tanggal Transaksi
+        
+        'jumlah',        // <--- INI YANG TADI KOSONG
+        'status',        // <--- INI JUGA
+        
+        // Kolom Tambahan (Pemeliharaan)
+        'deskripsi',     
+        'km_saat_ini',   
+        'km_berikutnya',
+        
+        // Kolom Keuangan
         'harga_satuan',
         'total_harga',
         'sisa_stok'
@@ -27,21 +36,21 @@ class OutgoingTransaction extends Model
     // Relasi ke Barang
     public function item()
     {
-        // withDefault() PENTING! 
-        // Agar jika item_id NULL (transaksi servis), kode tidak error saat panggil $t->item->nama_barang
         return $this->belongsTo(Item::class)->withDefault([
-            'nama_barang' => null,
+            'nama_barang' => 'Jasa / Servis (Non-Barang)',
             'satuan' => '-'
         ]);
     }
 
-    // Relasi ke Divisi (Bidang)
+    // Relasi ke Bidang
     public function division()
     {
-        return $this->belongsTo(Division::class);
+        return $this->belongsTo(Division::class)->withDefault([
+            'nama_bidang' => 'Tanpa Divisi'
+        ]);
     }
 
-    // Relasi ke User (Opsional, biar tahu siapa yang input)
+    // Relasi ke User
     public function user()
     {
         return $this->belongsTo(User::class);

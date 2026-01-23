@@ -3,56 +3,51 @@
 namespace App\Imports;
 
 use App\Models\Item;
-use App\Models\Category;
-use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
+use App\Models\Account;
+use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation; // 1. Import Validasi
+use Maatwebsite\Excel\Concerns\WithValidation;
 
-// 2. Tambahkan implements WithValidation
-class ItemImport implements ToCollection, WithHeadingRow, WithValidation
+class ItemImport implements ToModel, WithHeadingRow, WithValidation
 {
-    public function collection(Collection $rows)
+    /**
+    * @param array $row
+    *
+    * @return \Illuminate\Database\Eloquent\Model|null
+    */
+    public function model(array $row)
     {
-        foreach ($rows as $row) {
-            // Ambil data (Logika Insert Masih Sama)
-            $stok  = isset($row['stok_saat_ini']) ? (int) $row['stok_saat_ini'] : 0;
-            $harga = isset($row['harga_satuan']) ? (float) $row['harga_satuan'] : 0;
+        // 1. CARI ACCOUNT ID BERDASARKAN NAMA KATEGORI (LEVEL 3)
+        // Kita cari di tabel accounts yang namanya mirip dengan input di Excel
+        $account = Account::where('nama_akun', $row['kategori_level_3'])
+                          ->where('level', 3) // Pastikan dia Level 3 (Rincian)
+                          ->first();
 
-            // Karena sudah divalidasi, kita yakin kategori_id pasti ada di DB
-            $kategoriId = $row['kategori_id'];
-
-            Item::create([
-                'nama_barang'    => $row['nama_barang'],
-                'category_id'    => $kategoriId,
-                'satuan'         => $row['satuan'] ?? 'Pcs',
-                'harga_satuan'   => $harga,
-                'stok_awal_2026' => $stok,
-                'stok_saat_ini'  => $stok,
-            ]);
+        // Jika salah ketik/tidak ketemu, kita bisa skip atau throw error
+        if (!$account) {
+            // Opsional: Lempar error biar user tahu baris mana yang salah
+            throw new \Exception("Kategori '" . $row['kategori_level_3'] . "' tidak ditemukan di database!");
         }
+
+        // 2. SIMPAN BARANG
+        return new Item([
+            'nama_barang'    => $row['nama_barang'],
+            'account_id'     => $account->id, // Pakai ID yang ditemukan tadi
+            'satuan'         => $row['satuan'],
+            'stok_saat_ini'  => $row['stok_awal'],
+            'stok_awal_2026' => $row['stok_awal'], // Asumsi import adalah stok awal
+            'harga_satuan'   => $row['harga_satuan'],
+        ]);
     }
 
-    // 3. ATURAN VALIDASI (Agar Pinter)
     public function rules(): array
     {
         return [
-            // Kolom 'nama_barang' wajib diisi
-            'nama_barang' => 'required',
-
-            // Kolom 'kategori_id' wajib angka & WAJIB ADA DI TABEL categories KOLOM ID
-            // Inilah yang mencegah error SQL Integrity tadi!
-            'kategori_id' => 'required|integer|exists:categories,id',
-        ];
-    }
-
-    // 4. PESAN ERROR KUSTOM (Biar enak dibaca manusia)
-    public function customValidationMessages()
-    {
-        return [
-            'kategori_id.exists' => 'ID Kategori tidak ditemukan di database. Pastikan ID 1-11 saja.',
-            'kategori_id.required' => 'Kolom kategori_id tidak boleh kosong.',
-            'nama_barang.required' => 'Nama Barang tidak boleh kosong.',
+            'nama_barang'      => 'required',
+            'kategori_level_3' => 'required', // Ini kolom baru di Excel
+            'satuan'           => 'required',
+            'stok_awal'        => 'required|numeric',
+            'harga_satuan'     => 'required|numeric',
         ];
     }
 }

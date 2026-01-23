@@ -13,10 +13,30 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            
+            // --- DATA STANDAR LARAVEL ---
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+
+            // --- DATA TAMBAHAN APLIKASI KITA (CUSTOM) ---
+            
+            // 1. NIP (Nomor Induk Pegawai)
+            $table->string('nip')->nullable()->unique(); 
+
+            // 2. Role (admin / bidang / kaban) - Default 'bidang' biar aman
+            $table->string('role')->default('bidang'); 
+
+            // 3. Gender (L/P)
+            $table->string('gender', 10)->nullable();
+
+            // 4. Divisi / Bidang
+            // Kita pakai unsignedBigInteger saja (tanpa 'constrained') 
+            // karena tabel 'users' dibuat DULUAN sebelum tabel 'divisions'.
+            // Kalau dipaksa constrained di sini, nanti error "Table divisions doesn't exist".
+            $table->unsignedBigInteger('division_id')->nullable();
+
             $table->rememberToken();
             $table->timestamps();
         });

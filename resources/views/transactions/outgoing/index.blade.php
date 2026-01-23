@@ -45,6 +45,7 @@
                             <th>Tanggal</th>
                             <th>Bidang / Divisi</th>
                             <th>Barang</th>
+                            {{-- Header Kolom Sudah Ada --}}
                             <th>Jumlah</th>
                             <th class="text-center">Status</th>
                         </tr>
@@ -52,32 +53,45 @@
                     <tbody>
                         @forelse($transactions as $t)
                             <tr>
-                                {{-- Format Tanggal: 09 Jan 2026 --}}
+                                {{-- 1. Tanggal --}}
                                 <td>{{ \Carbon\Carbon::parse($t->tanggal)->format('d M Y') }}</td>
 
-                                {{-- Nama Bidang --}}
+                                {{-- 2. Nama Bidang --}}
                                 <td>{{ $t->division->nama_bidang ?? 'Admin/Pusat' }}</td>
 
-                                {{-- Nama Barang (PERBAIKAN DISINI: GANTI $item JADI $t) --}}
+                                {{-- 3. Nama Barang / Deskripsi --}}
                                 <td>
                                     @if ($t->item_id)
-                                        {{ $t->item->nama_barang }}
+                                        <div class="d-flex flex-column">
+                                            <span class="fw-bold">{{ $t->item->nama_barang ?? 'Barang Dihapus' }}</span>
+                                            <small class="text-muted" style="font-size: 0.75rem;">
+                                                <i class="bi bi-tag"></i> {{ $t->item->account->nama_akun ?? '-' }}
+                                            </small>
+                                        </div>
                                     @else
+                                        {{-- Khusus Pemeliharaan --}}
                                         <span class="text-primary fw-bold">{{ $t->deskripsi }}</span>
-                                        <small class="text-muted d-block">(Pemeliharaan)</small>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <small class="badge bg-light text-secondary border">Pemeliharaan</small>
+                                            @if ($t->km_saat_ini)
+                                                <small class="text-muted" style="font-size: 0.75rem;">(KM: {{ $t->km_saat_ini }})</small>
+                                            @endif
+                                        </div>
                                     @endif
                                 </td>
 
-                                {{-- Jumlah + Satuan (Misal: 5 Rim) --}}
+                                {{-- 4. KOLOM JUMLAH (INI YANG HILANG TADI) --}}
                                 <td>
                                     <span class="fw-bold">{{ $t->jumlah }}</span>
-                                    <small class="text-muted">{{ $t->item->satuan ?? '' }}</small>
+                                    {{-- Tampilkan Satuan (Pcs/Rim/Paket) --}}
+                                    <small class="text-muted">{{ $t->item->satuan ?? 'Pkt' }}</small>
                                 </td>
 
+                                {{-- 5. KOLOM STATUS (INI JUGA HILANG TADI) --}}
                                 <td class="text-center">
                                     @if ($t->status == 'pending')
                                         <span class="badge bg-warning text-dark">
-                                            <i class="bi bi-clock-history"></i> Menunggu ACC
+                                            <i class="bi bi-clock"></i> Menunggu
                                         </span>
                                     @elseif($t->status == 'approved')
                                         <span class="badge bg-success">

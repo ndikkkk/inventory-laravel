@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\OutgoingTransaction;
 use App\Models\Item;
 use App\Models\Division;
+use App\Models\Account; // PENTING: Pakai Model Account
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -16,7 +17,12 @@ class OutgoingController extends Controller
     // 1. Tampilkan Form Pengajuan
     public function create()
     {
-        $items = Item::where('stok_saat_ini', '>', 0)->get();
+        // REVISI: Load relasi 'account' agar bisa dikelompokkan di view
+        $items = Item::with('account.parent') // Load sampai parent biar tahu induknya
+                     ->where('stok_saat_ini', '>', 0)
+                     ->orderBy('account_id') // Urutkan berdasarkan kategori
+                     ->get();
+
         $user = Auth::user();
 
         // LOGIKA DIVISI
@@ -72,7 +78,7 @@ class OutgoingController extends Controller
             'status'       => $status,
             'harga_satuan' => $harga_saat_ini,
             'total_harga'  => $total_rupiah,
-            'sisa_stok'    => $sisaStok // Simpan Sisa Stok (Jika Approved)
+            'sisa_stok'    => $sisaStok
         ]);
 
         // LOGIC STOK DI MASTER BARANG
@@ -114,11 +120,11 @@ class OutgoingController extends Controller
             'status'       => 'approved',
             'harga_satuan' => $harga_terbaru,
             'total_harga'  => $total_terbaru,
-            'sisa_stok'    => $stokBaru // <--- PENTING: Catat Sisa Stok di sini
+            'sisa_stok'    => $stokBaru 
         ]);
 
         // POTONG STOK DI MASTER BARANG
-        $item->stok_saat_ini = $stokBaru; // Pakai nilai yang sudah dihitung agar sinkron
+        $item->stok_saat_ini = $stokBaru; 
         $item->save();
 
         return back()->with('success', 'Pengajuan disetujui. Stok berkurang & Sisa Stok tercatat.');
@@ -163,67 +169,70 @@ class OutgoingController extends Controller
 
          return back()->with('success', 'Pengajuan telah ditolak.');
     }
-    // Tambahkan Method Baru
+    
+    // --- FITUR MAINTENANCE / PEMELIHARAAN ---
 
-// 1. Tampilkan Form Khusus Pemeliharaan
-public function createMaintenance()
-{
-    $divisions = \App\Models\Division::all();
-    // Kita tidak butuh list item ATK, karena user akan input nama sparepart/jasa manual
-    return view('transactions.outgoing.maintenance_create', compact('divisions'));
-}
+    // 1. Tampilkan Form Khusus Pemeliharaan
+    public function createMaintenance()
+    {
+        $divisions = \App\Models\Division::all();
+        return view('transactions.outgoing.maintenance_create', compact('divisions'));
+    }
 
-// 2. Simpan Data Pemeliharaan
-public function storeMaintenance(Request $request)
-{
-    $request->validate([
-        'tanggal'        => 'required|date',
-        'nama_item'      => 'required|string', // Nama Jasa/Sparepart
-        'harga'          => 'required|numeric',
-        'division_id'    => 'required',
-        'km_saat_ini'    => 'nullable|integer',
-        'km_berikutnya'  => 'nullable|integer',
-    ]);
+    // 2. Simpan Data Pemeliharaan (REVISI PENTING)
+    public function storeMaintenance(Request $request)
+    {
+        $request->validate([
+            'tanggal'        => 'required|date',
+            'nama_item'      => 'required|string', 
+            'harga'          => 'required|numeric',
+            'division_id'    => 'required',
+            'km_saat_ini'    => 'nullable|integer',
+            'km_berikutnya'  => 'nullable|integer',
+        ]);
 
-    // A. Cari/Buat Kategori "Pemeliharaan Mesin"
-    $kategori = \App\Models\Category::firstOrCreate(['nama_kategori' => 'Pemeliharaan Mesin']);
+        // REVISI: Gunakan ACCOUNT, bukan CATEGORY
+        // Cari akun "Pemeliharaan Mesin" (Level 3). Jika tidak ada, buat baru.
+        // Kita set parent_id = null dulu agar tidak error, atau bisa Anda set ke ID 'Suku Cadang' jika mau.
+        $account = Account::firstOrCreate(
+            ['nama_akun' => 'Pemeliharaan Mesin'],
+            ['level' => 3, 'parent_id' => null] 
+        );
 
-    // B. Buat "Barang Dummy/Jasa" secara otomatis
-    // Karena ini maintenance, kita anggap ini barang habis pakai langsung (Jasa/Oli)
-    // Kita cek dulu apakah barang dengan nama ini sudah ada di kategori pemeliharaan?
-    $item = \App\Models\Item::firstOrCreate(
-        [
-            'nama_barang' => $request->nama_item,
-            'category_id' => $kategori->id
-        ],
-        [
-            'satuan'         => 'Paket/Pcs',
-            'harga_satuan'   => $request->harga,
-            'stok_awal_2026' => 0,
-            'stok_saat_ini'  => 0 // Stok 0 karena ini jasa/langsung beli langsung pakai
-        ]
-    );
+        // Buat "Barang Dummy/Jasa" 
+        $item = Item::firstOrCreate(
+            [
+                'nama_barang' => $request->nama_item,
+                'account_id'  => $account->id // Gunakan account_id
+            ],
+            [
+                'satuan'         => 'Paket/Pcs',
+                'harga_satuan'   => $request->harga,
+                'stok_awal_2026' => 0,
+                'stok_saat_ini'  => 0 
+            ]
+        );
 
-    // C. Jika harga berubah, update harga master barangnya
-    $item->update(['harga_satuan' => $request->harga]);
+        // Update harga jika berubah
+        $item->update(['harga_satuan' => $request->harga]);
 
-    // D. Simpan Transaksi Keluar
-    \App\Models\OutgoingTransaction::create([
-        'item_id'       => null,
-        'deskripsi'     => $request->nama_item,        'division_id'   => $request->division_id,
-        'tanggal'       => $request->tanggal,
-        'jumlah'        => 1, // Anggap 1 paket maintenance
-        'status'        => 'approved', // Langsung approved kalau admin yang input
-        'km_saat_ini'   => $request->km_saat_ini,
-        'km_berikutnya' => $request->km_berikutnya,
-        // Hitung total harga
-        'harga_satuan'  => $request->harga,
-        'total_harga'   => $request->harga, // 1 * harga
-        'sisa_stok'     => 0 // Tidak mempengaruhi stok gudang ATK
-    ]);
+        // Simpan Transaksi Keluar
+        OutgoingTransaction::create([
+            'item_id'       => null,
+            'deskripsi'     => $request->nama_item,
+            'division_id'   => $request->division_id,
+            'tanggal'       => $request->tanggal,
+            'jumlah'        => 1, 
+            'status'        => 'approved', 
+            'km_saat_ini'   => $request->km_saat_ini,
+            'km_berikutnya' => $request->km_berikutnya,
+            'harga_satuan'  => $request->harga,
+            'total_harga'   => $request->harga, 
+            'sisa_stok'     => 0 
+        ]);
 
-    return redirect()->route('outgoing.index')->with('success', 'Data Pemeliharaan berhasil dicatat!');
-}
+        return redirect()->route('outgoing.index')->with('success', 'Data Pemeliharaan berhasil dicatat!');
+    }
 
     // Cetak PDF Approval
     public function printApproval()
@@ -235,31 +244,25 @@ public function storeMaintenance(Request $request)
 
     // Cetak PDF Barang Keluar (Approved Only)
     public function exportPdf(Request $request)
-{
-    // 1. Ambil Filter Tanggal
-    $tglAwal  = $request->input('tgl_awal');
-    $tglAkhir = $request->input('tgl_akhir');
+    {
+        $tglAwal  = $request->input('tgl_awal');
+        $tglAkhir = $request->input('tgl_akhir');
 
-    // 2. Query Data (Hanya yang Approved)
-    $query = OutgoingTransaction::with(['item', 'division'])
-                ->where('status', 'approved');
+        $query = OutgoingTransaction::with(['item', 'division'])
+                    ->where('status', 'approved');
 
-    // 3. Terapkan Filter Jika Ada
-    if (!empty($tglAwal) && !empty($tglAkhir)) {
-        $query->whereDate('tanggal', '>=', $tglAwal)
-              ->whereDate('tanggal', '<=', $tglAkhir);
+        if (!empty($tglAwal) && !empty($tglAkhir)) {
+            $query->whereDate('tanggal', '>=', $tglAwal)
+                  ->whereDate('tanggal', '<=', $tglAkhir);
+        }
+
+        $data = $query->orderBy('tanggal', 'asc')->get();
+
+        $pdf = Pdf::loadView('transactions.outgoing.pdf', compact('data', 'tglAwal', 'tglAkhir'));
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Laporan-Barang-Keluar.pdf');
     }
-
-    $data = $query->orderBy('tanggal', 'asc')->get();
-
-    // 4. Load View PDF
-    // Pastikan view-nya sesuai dengan nama file kamu
-    $pdf = Pdf::loadView('transactions.outgoing.pdf', compact('data', 'tglAwal', 'tglAkhir'));
-
-    $pdf->setPaper('a4', 'portrait');
-
-    return $pdf->stream('Laporan-Barang-Keluar.pdf');
-}
 
     // Cetak Excel
     public function exportExcel()

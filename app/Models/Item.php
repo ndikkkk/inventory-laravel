@@ -10,8 +10,13 @@ use HasFactory;
 protected $guarded = ['id'];
 
 // Relasi: Barang milik satu Kategori
-public function category()
-{
-return $this->belongsTo(Category::class);
+//public function category()
+//{
+//return $this->belongsTo(Category::class);
+//}
+
+public function account(){
+    // Relasi ke account
+    return $this->belongsTo(\App\Models\Account::class, 'account_id');
 }
 }

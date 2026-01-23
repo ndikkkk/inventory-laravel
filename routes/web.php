@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\IncomingController;
-use App\Http\Controllers\OutgoingController; // Pastikan ini ada
+use App\Http\Controllers\OutgoingController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
 
@@ -39,7 +39,8 @@ Route::middleware('auth')->group(function () {
     Route::post('items/import', [ItemController::class, 'import'])->name('items.import');
     Route::get('items/print-stock', [ItemController::class, 'printStock'])->name('items.print');
     Route::get('items/export/excel', [ItemController::class, 'exportExcel'])->name('items.excel');
-    
+    // AJAX untuk Dropdown Bertingkat
+    Route::get('/get-accounts/{parentId}', [ItemController::class, 'getAccounts'])->name('items.getAccounts');
     Route::resource('items', ItemController::class);
 
     // C. Barang Masuk (Incoming)
@@ -47,33 +48,41 @@ Route::middleware('auth')->group(function () {
     Route::get('incoming/export/excel', [IncomingController::class, 'exportExcel'])->name('incoming.excel');
     Route::get('incoming/create', [IncomingController::class, 'create'])->name('incoming.create');
     Route::post('incoming', [IncomingController::class, 'store'])->name('incoming.store');
+    Route::get('incoming', [IncomingController::class, 'index'])->name('incoming.index');
 
     // D. Barang Keluar (Outgoing) & Approval
-    // --- 1. Export & Print (Letakkan Paling Atas) ---
+
+    // 1. Export & Print
     Route::get('outgoing/export/pdf', [OutgoingController::class, 'exportPdf'])->name('outgoing.pdf');
     Route::get('outgoing/export/excel', [OutgoingController::class, 'exportExcel'])->name('outgoing.excel');
     Route::get('outgoing/approval/print', [OutgoingController::class, 'printApproval'])->name('outgoing.print_approval');
 
-    // --- 2. Halaman Khusus (Maintenance & Create & Approval) ---
-    // PENTING: Maintenance ditaruh DISINI (sebelum route yang pakai ID)
+    // 2. Fitur Maintenance (Harus SEBELUM route {id})
     Route::get('outgoing/maintenance', [OutgoingController::class, 'createMaintenance'])->name('outgoing.maintenance');
     Route::post('outgoing/maintenance', [OutgoingController::class, 'storeMaintenance'])->name('outgoing.store_maintenance');
-    
+
+    // 3. Approval & Create
     Route::get('outgoing/approval', [OutgoingController::class, 'approvalPage'])->name('outgoing.approval');
     Route::get('outgoing/create', [OutgoingController::class, 'create'])->name('outgoing.create');
 
-    // --- 3. Logic dengan ID (Wildcard) ---
+    // 4. Logic Approval dengan ID
     Route::post('outgoing/{id}/approve', [OutgoingController::class, 'approve'])->name('outgoing.approve');
     Route::post('outgoing/{id}/reject', [OutgoingController::class, 'reject'])->name('outgoing.reject');
 
-    // --- 4. Index & Store Standar ---
+    // 5. Index & Store Standar
     Route::post('outgoing', [OutgoingController::class, 'store'])->name('outgoing.store');
     Route::get('outgoing', [OutgoingController::class, 'index'])->name('outgoing.index');
 
     // E. Laporan (Reports)
-    Route::get('reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.pdf');
-    Route::get('reports/export/all', [ReportController::class, 'exportAllPdf'])->name('reports.export_all'); // Rapikan namespace
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
+
+    // --- [INI YANG TADI HILANG] ---
+    Route::get('reports/export/all', [ReportController::class, 'exportAllPdf'])->name('reports.export_all');
+    // ------------------------------
+
+    Route::get('/reports/mutasi', [ReportController::class, 'printMutasi'])->name('reports.mutasi');
+    Route::get('/reports/masuk', [ReportController::class, 'printMasuk'])->name('reports.masuk');
+    Route::get('/reports/keluar', [ReportController::class, 'printKeluar'])->name('reports.keluar');
 
     // F. Profil User
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
