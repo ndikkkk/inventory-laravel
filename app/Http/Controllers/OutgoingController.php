@@ -120,11 +120,11 @@ class OutgoingController extends Controller
             'status'       => 'approved',
             'harga_satuan' => $harga_terbaru,
             'total_harga'  => $total_terbaru,
-            'sisa_stok'    => $stokBaru 
+            'sisa_stok'    => $stokBaru
         ]);
 
         // POTONG STOK DI MASTER BARANG
-        $item->stok_saat_ini = $stokBaru; 
+        $item->stok_saat_ini = $stokBaru;
         $item->save();
 
         return back()->with('success', 'Pengajuan disetujui. Stok berkurang & Sisa Stok tercatat.');
@@ -169,7 +169,7 @@ class OutgoingController extends Controller
 
          return back()->with('success', 'Pengajuan telah ditolak.');
     }
-    
+
     // --- FITUR MAINTENANCE / PEMELIHARAAN ---
 
     // 1. Tampilkan Form Khusus Pemeliharaan
@@ -184,7 +184,7 @@ class OutgoingController extends Controller
     {
         $request->validate([
             'tanggal'        => 'required|date',
-            'nama_item'      => 'required|string', 
+            'nama_item'      => 'required|string',
             'harga'          => 'required|numeric',
             'division_id'    => 'required',
             'km_saat_ini'    => 'nullable|integer',
@@ -196,10 +196,10 @@ class OutgoingController extends Controller
         // Kita set parent_id = null dulu agar tidak error, atau bisa Anda set ke ID 'Suku Cadang' jika mau.
         $account = Account::firstOrCreate(
             ['nama_akun' => 'Pemeliharaan Mesin'],
-            ['level' => 3, 'parent_id' => null] 
+            ['level' => 3, 'parent_id' => null]
         );
 
-        // Buat "Barang Dummy/Jasa" 
+        // Buat "Barang Dummy/Jasa"
         $item = Item::firstOrCreate(
             [
                 'nama_barang' => $request->nama_item,
@@ -209,7 +209,7 @@ class OutgoingController extends Controller
                 'satuan'         => 'Paket/Pcs',
                 'harga_satuan'   => $request->harga,
                 'stok_awal_2026' => 0,
-                'stok_saat_ini'  => 0 
+                'stok_saat_ini'  => 0
             ]
         );
 
@@ -222,13 +222,13 @@ class OutgoingController extends Controller
             'deskripsi'     => $request->nama_item,
             'division_id'   => $request->division_id,
             'tanggal'       => $request->tanggal,
-            'jumlah'        => 1, 
-            'status'        => 'approved', 
+            'jumlah'        => 1,
+            'status'        => 'approved',
             'km_saat_ini'   => $request->km_saat_ini,
             'km_berikutnya' => $request->km_berikutnya,
             'harga_satuan'  => $request->harga,
-            'total_harga'   => $request->harga, 
-            'sisa_stok'     => 0 
+            'total_harga'   => $request->harga,
+            'sisa_stok'     => 0
         ]);
 
         return redirect()->route('outgoing.index')->with('success', 'Data Pemeliharaan berhasil dicatat!');
@@ -236,11 +236,17 @@ class OutgoingController extends Controller
 
     // Cetak PDF Approval
     public function printApproval()
-    {
-        $data = OutgoingTransaction::with(['item', 'division'])->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")->orderBy('tanggal', 'asc')->orderBy('created_at', 'asc')->get();
-        $pdf = Pdf::loadView('transactions.outgoing.pdf_approval', compact('data'));
-        return $pdf->stream('Laporan-Pengajuan-Barang.pdf');
-    }
+{
+    // UBAH DISINI: Tambahkan 'item.account'
+    $data = OutgoingTransaction::with(['item.account', 'division'])
+                ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")
+                ->orderBy('tanggal', 'asc')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+    $pdf = Pdf::loadView('transactions.outgoing.pdf_approval', compact('data'));
+    return $pdf->stream('Laporan-Pengajuan-Barang.pdf');
+}
 
     // Cetak PDF Barang Keluar (Approved Only)
     public function exportPdf(Request $request)
@@ -248,7 +254,7 @@ class OutgoingController extends Controller
         $tglAwal  = $request->input('tgl_awal');
         $tglAkhir = $request->input('tgl_akhir');
 
-        $query = OutgoingTransaction::with(['item', 'division'])
+        $query = OutgoingTransaction::with(['item.account', 'division'])
                     ->where('status', 'approved');
 
         if (!empty($tglAwal) && !empty($tglAkhir)) {
