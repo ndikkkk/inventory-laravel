@@ -68,7 +68,6 @@ class IncomingController extends Controller
         // D. Simpan Transaksi (Catat Harga Beli Asli, BUKAN Rata-rata)
         IncomingTransaction::create([
             'item_id'       => $request->item_id,
-            'user_id'       => auth()->id(), // Opsional jika ada login
             'tanggal'       => $request->tanggal,
             'jumlah'        => $request->jumlah,
             'harga_satuan'  => $request->harga_satuan, // Harga Nota

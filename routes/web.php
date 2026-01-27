@@ -41,7 +41,10 @@ Route::middleware('auth')->group(function () {
     Route::get('items/export/excel', [ItemController::class, 'exportExcel'])->name('items.excel');
     // AJAX untuk Dropdown Bertingkat
     Route::get('/get-accounts/{parentId}', [ItemController::class, 'getAccounts'])->name('items.getAccounts');
+    // API untuk Cek Barang Mirip (AJAX)
+    Route::get('/items/check-slug', [App\Http\Controllers\ItemController::class, 'checkDuplicate'])->name('items.check');
     Route::resource('items', ItemController::class);
+
 
     // C. Barang Masuk (Incoming)
     Route::get('incoming/export/pdf', [IncomingController::class, 'exportPdf'])->name('incoming.pdf');

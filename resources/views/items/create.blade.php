@@ -26,8 +26,20 @@
                     {{-- 1. NAMA BARANG --}}
                     <div class="col-md-12 mb-3">
                         <label class="form-label fw-bold">Nama Barang</label>
-                        <input type="text" name="nama_barang" class="form-control"
+                        <input type="text" name="nama_barang" id="nama_barang" class="form-control"
                             placeholder="Contoh: Kertas HVS A4 70gr" required>
+
+                        {{-- AREA PERINGATAN (Akan muncul jika ada duplikat) --}}
+                        <div id="duplicate-alert" class="alert alert-warning mt-2 d-none shadow-sm">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-3"></i>
+                                <div>
+                                    <strong>Tunggu dulu!</strong> Kami menemukan barang yang mirip:
+                                    <ul id="duplicate-list" class="mb-2 mt-1 ps-3"></ul>
+                                    <small class="text-dark">Apakah maksud Anda barang di atas? <br>Jika ya, sebaiknya lakukan <b>Restock (Barang Masuk)</b>.</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -128,7 +140,7 @@
                             min="0" required>
                     </div>
 
-                    {{-- 7. STOK MINIMUM (ALERT) - FITUR BARU --}}
+                    {{-- 7. STOK MINIMUM (ALERT) --}}
                     <div class="col-md-3 mb-3">
                         <label class="form-label text-danger fw-bold">Stok Minimum (Alert)</label>
                         <input type="number" name="min_stok" class="form-control border-danger" value="5"
@@ -145,66 +157,116 @@
             </form>
         </div>
     </div>
-@endsection
 
-@push('scripts')
-    {{-- PENTING: Load jQuery untuk AJAX --}}
+    {{-- SCRIPT GABUNGAN (LANGSUNG DI BODY, BUKAN DI PUSH) --}}
+    {{-- Ini lebih aman daripada @push karena pasti tereksekusi --}}
+
+    {{-- Pastikan jQuery diload --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
 
-            // --- 1. SCRIPT DROPDOWN BERTINGKAT (AJAX) ---
+        // ==========================================
+        // 1. SCRIPT CEK DUPLIKAT (VERSI SANTAI / PER KATA)
+        // ==========================================
+        const inputNama  = document.getElementById('nama_barang');
+        const alertBox   = document.getElementById('duplicate-alert');
+        const listBarang = document.getElementById('duplicate-list');
 
-            // Saat Level 1 (Jenis) dipilih
-            $('#level1').change(function() {
-                var id = $(this).val();
+        // Variable untuk timer (Penunda pencarian)
+        let typingTimer;
+        const doneTypingInterval = 600; // Waktu tunggu 600ms (0.6 detik)
 
-                // Reset Level 2 & 3
-                $('#level2').empty().append('<option value="" selected disabled>Loading...</option>').prop(
-                    'disabled', true);
-                $('#level3').empty().append(
-                    '<option value="" selected disabled>Menunggu Kelompok...</option>').prop('disabled',
-                    true);
+        if (inputNama) {
+            // Event saat user mengetik
+            inputNama.addEventListener('input', function() {
+                clearTimeout(typingTimer); // Hapus timer lama tiap ngetik huruf baru
 
-                // Request Ajax ke Server
-                $.get('/get-accounts/' + id, function(data) {
-                    $('#level2').empty().append(
-                        '<option value="" selected disabled>Pilih Kelompok</option>');
-                    $.each(data, function(key, value) {
-                        $('#level2').append('<option value="' + value.id + '">' + value
-                            .nama_akun + '</option>');
-                    });
-                    $('#level2').prop('disabled', false);
-                });
+                alertBox.classList.add('d-none'); // Sembunyikan alert saat sedang ngetik
+
+                // Mulai timer baru. Cari HANYA kalau user berhenti ngetik selama 0.6 detik
+                typingTimer = setTimeout(cariBarang, doneTypingInterval);
             });
 
-            // Saat Level 2 (Kelompok) dipilih
-            $('#level2').change(function() {
-                var id = $(this).val();
+            // Fungsi Pencarian
+            function cariBarang() {
+                let keyword = inputNama.value;
 
-                // Reset Level 3
-                $('#level3').empty().append('<option value="" selected disabled>Loading...</option>').prop(
-                    'disabled', true);
+                // SYARAT MUTLAK: Jangan cari kalau kurang dari 3 huruf!
+                // Ini yang bikin "A" tidak akan memunculkan "Spidol"
+                if (keyword.length < 3) {
+                    alertBox.classList.add('d-none');
+                    return;
+                }
 
-                // Request Ajax ke Server
-                $.get('/get-accounts/' + id, function(data) {
-                    $('#level3').empty().append(
-                        '<option value="" selected disabled>Pilih Rincian Objek</option>');
-                    $.each(data, function(key, value) {
-                        $('#level3').append('<option value="' + value.id + '">' + value
-                            .nama_akun + '</option>');
-                    });
-                    $('#level3').prop('disabled', false);
+                // Panggil API Laravel
+                fetch(`{{ route('items.check') }}?keyword=${keyword}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            listBarang.innerHTML = '';
+
+                            data.forEach(item => {
+                                let urlRestock = `{{ route('incoming.create') }}?item_id=${item.id}`;
+
+                                let li = document.createElement('li');
+                                li.className = "mb-2";
+                                li.innerHTML = `
+                                    <span class="fw-bold text-dark">${item.nama_barang}</span>
+                                    <span class="badge bg-secondary ms-1">Stok: ${item.stok_saat_ini}</span>
+                                    <br>
+                                    <a href="${urlRestock}" class="btn btn-sm btn-success mt-1" style="font-size: 12px;">
+                                        <i class="bi bi-box-arrow-in-down"></i> Pilih Ini (Restock)
+                                    </a>
+                                `;
+                                listBarang.appendChild(li);
+                            });
+                            alertBox.classList.remove('d-none');
+                        } else {
+                            alertBox.classList.add('d-none');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // ==========================================
+        // 2. SCRIPT DROPDOWN (TIDAK BERUBAH)
+        // ==========================================
+        $('#level1').change(function() {
+            var id = $(this).val();
+            $('#level2').empty().append('<option value="" selected disabled>Loading...</option>').prop('disabled', true);
+            $('#level3').empty().append('<option value="" selected disabled>Menunggu Kelompok...</option>').prop('disabled', true);
+
+            $.get('/get-accounts/' + id, function(data) {
+                $('#level2').empty().append('<option value="" selected disabled>Pilih Kelompok</option>');
+                $.each(data, function(key, value) {
+                    $('#level2').append('<option value="' + value.id + '">' + value.nama_akun + '</option>');
                 });
+                $('#level2').prop('disabled', false);
             });
+        });
 
+        $('#level2').change(function() {
+            var id = $(this).val();
+            $('#level3').empty().append('<option value="" selected disabled>Loading...</option>').prop('disabled', true);
 
-            // --- 2. SCRIPT RADIO BUTTON TEXT ---
-            const radio1 = document.getElementById('radio1');
-            const radio2 = document.getElementById('radio2');
-            const helpText = document.getElementById('help-text');
+            $.get('/get-accounts/' + id, function(data) {
+                $('#level3').empty().append('<option value="" selected disabled>Pilih Rincian Objek</option>');
+                $.each(data, function(key, value) {
+                    $('#level3').append('<option value="' + value.id + '">' + value.nama_akun + '</option>');
+                });
+                $('#level3').prop('disabled', false);
+            });
+        });
 
+        // Script Radio Button Text
+        const radio1 = document.getElementById('radio1');
+        const radio2 = document.getElementById('radio2');
+        const helpText = document.getElementById('help-text');
+
+        if(radio1 && radio2) {
             radio1.addEventListener('change', () => {
                 helpText.innerText = "*Saldo Awal tidak akan tercatat sebagai Transaksi Masuk hari ini.";
                 helpText.className = "text-muted d-block mt-1";
@@ -214,6 +276,7 @@
                 helpText.innerText = "*Barang ini akan otomatis dicatat ke Riwayat Barang Masuk hari ini.";
                 helpText.className = "text-success fw-bold d-block mt-1";
             });
-        });
-    </script>
-@endpush
+        }
+    });
+</script>
+@endsection

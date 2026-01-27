@@ -279,4 +279,17 @@ class ItemController extends Controller
 
         return back()->with('success', 'Stok berhasil ditambah! Harga otomatis disesuaikan rata-rata.');
     }
+    // === API CEK DUPLIKAT ===
+    public function checkDuplicate(Request $request)
+    {
+        $keyword = $request->keyword;
+
+        // Cari barang yang namanya MIRIP (mengandung kata kunci)
+        // Limit 3 aja biar gak kebanyakan
+        $items = Item::where('nama_barang', 'LIKE', '%' . $keyword . '%')
+                     ->limit(3)
+                     ->get(['id', 'nama_barang', 'stok_saat_ini']);
+
+        return response()->json($items);
+    }
 }

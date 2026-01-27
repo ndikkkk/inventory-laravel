@@ -89,7 +89,6 @@
     </div>
 </div>
 @endsection
-
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -145,6 +144,22 @@
         // 5. Event Listener untuk Hitung Realtime
         inputJumlah.addEventListener('input', hitungTotal);
         inputHarga.addEventListener('input', hitungTotal);
+
+        // ============================================================
+        // === 6. FITUR BARU: AUTO-SELECT DARI URL (LOGIKA TAMBAHAN) ===
+        // ============================================================
+        // Cek apakah ada parameter ?item_id=... di URL (dari link Suggestion)
+        const urlParams = new URLSearchParams(window.location.search);
+        const preSelectedId = urlParams.get('item_id');
+
+        if (preSelectedId) {
+            // 1. Set nilai dropdown ke ID barang tersebut
+            selectBarang.value = preSelectedId;
+
+            // 2. Trigger event 'change' secara manual
+            // Ini PENTING: Supaya logika nomor 3 (Auto Isi Harga) di atas langsung jalan
+            selectBarang.dispatchEvent(new Event('change'));
+        }
     });
 </script>
 @endpush
