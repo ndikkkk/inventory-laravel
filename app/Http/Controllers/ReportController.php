@@ -83,7 +83,7 @@ class ReportController extends Controller
 
         $query = Item::with(['account.parent.parent']);
         $this->applyHierarchyFilter($query, $scope, $id);
-        $items = $query->orderBy('account_id')->get();
+        $items = $query->orderBy('account_id', 'asc')->orderBy('nama_barang', 'asc')->get();
 
         $laporan = $items->map(function ($item) use ($start, $end) {
             // 1. HITUNG HISTORI MASA LALU (Untuk Saldo Awal)
