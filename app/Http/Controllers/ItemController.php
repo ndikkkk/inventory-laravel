@@ -15,6 +15,7 @@ use App\Models\OutgoingTransaction;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class ItemController extends Controller
 {
@@ -102,7 +103,7 @@ class ItemController extends Controller
 
         // 1. Simpan ke Master Barang
         $item = Item::create([
-            'nama_barang'    => $request->nama_barang,
+            'nama_barang'    => Str::title($request->nama_barang),
             'account_id'     => $request->account_id, // Simpan ID Akun (Level 3)
             'satuan'         => $request->satuan,
             'harga_satuan'   => $request->harga_satuan,
@@ -150,7 +151,7 @@ class ItemController extends Controller
         ]);
 
         $item->update([
-            'nama_barang'  => $request->nama_barang,
+            'nama_barang'  => Str::title($request->nama_barang),
             'account_id'   => $request->account_id, // REVISI: Update ke account_id
             'satuan'       => $request->satuan,
             'harga_satuan' => $request->harga_satuan,
