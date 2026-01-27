@@ -68,8 +68,8 @@
                         <li class="sidebar-title">Transaksi</li>
                         {{-- KHUSUS ADMIN: BARANG MASUK & APPROVAL --}}
                         @if (Auth::user()->role == 'admin')
-                            <li class="sidebar-item {{ Route::is('incoming.create') ? 'active' : '' }}">
-                                <a href="{{ route('incoming.create') }}" class='sidebar-link'>
+                            <li class="sidebar-item {{ Route::is('incoming.index') ? 'active' : '' }}">
+                                <a href="{{ route('incoming.index') }}" class='sidebar-link'>
                                     <i class="bi bi-arrow-down-circle-fill text-success"></i>
                                     <span>Barang Masuk</span>
                                 </a>

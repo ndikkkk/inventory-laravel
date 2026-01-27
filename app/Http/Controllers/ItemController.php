@@ -225,4 +225,58 @@ class ItemController extends Controller
         return redirect()->route('items.index')
             ->with('success', 'SYSTEM RESET: Semua Barang & Laporan BERHASIL DIHAPUS TOTAL (0)!');
     }
+
+    // === FITUR BARU: PROSES RESTOCK DENGAN HARGA RATA-RATA ===
+    public function processRestock(Request $request)
+    {
+        $request->validate([
+            'item_id'       => 'required|exists:items,id',
+            'tambah_stok'   => 'required|integer|min:1',
+            'harga_baru'    => 'required|numeric|min:0', // Harga beli saat ini
+            'tanggal'       => 'required|date',
+        ]);
+
+        $item = Item::find($request->item_id);
+
+        // 1. Hitung Nilai Aset Lama
+        // Rumus: Stok Sekarang x Harga Rata-rata Sekarang
+        $nilai_aset_lama = $item->stok_saat_ini * $item->harga_satuan;
+
+        // 2. Hitung Nilai Aset Baru (Belanjaan Ini)
+        // Rumus: Jumlah Beli x Harga Beli Baru
+        $nilai_aset_baru = $request->tambah_stok * $request->harga_baru;
+
+        // 3. Hitung Total Stok Nanti
+        $total_stok_nanti = $item->stok_saat_ini + $request->tambah_stok;
+
+        // 4. HITUNG HARGA RATA-RATA BARU (Weighted Average)
+        // Rumus: (Nilai Lama + Nilai Baru) / Total Stok
+        if ($total_stok_nanti > 0) {
+            $harga_rata_rata = ($nilai_aset_lama + $nilai_aset_baru) / $total_stok_nanti;
+        } else {
+            $harga_rata_rata = $request->harga_baru;
+        }
+
+        // 5. UPDATE MASTER BARANG
+        // Kita update Stok jadi bertambah & Harga jadi Rata-rata
+        $item->update([
+            'stok_saat_ini' => $total_stok_nanti,
+            'harga_satuan'  => $harga_rata_rata, // <-- Harga Master berubah jadi rata-rata
+        ]);
+
+        // 6. CATAT RIWAYAT TRANSAKSI (PENTING!)
+        // Di riwayat, kita catat HARGA ASLI BELINYA ($request->harga_baru), bukan rata-rata
+        // Supaya nanti kalau diaudit, ketahuan: "Oh tgl sekian beli harga mahal".
+        IncomingTransaction::create([
+            'item_id'       => $item->id,
+            'tanggal'       => $request->tanggal,
+            'jumlah'        => $request->tambah_stok,
+            'harga_satuan'  => $request->harga_baru, // Catat harga beli asli
+            'total_harga'   => $nilai_aset_baru,
+            'sisa_stok'     => $request->tambah_stok, // Untuk FIFO nanti (opsional)
+            'keterangan'    => $request->keterangan ?? 'Restock Barang',
+        ]);
+
+        return back()->with('success', 'Stok berhasil ditambah! Harga otomatis disesuaikan rata-rata.');
+    }
 }

@@ -6,7 +6,7 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h4 class="card-title">Restock Barang</h4>
+        <h4 class="card-title">Barang Masuk / Restock</h4>
     </div>
     <div class="card-body">
 
@@ -24,44 +24,66 @@
         <form action="{{ route('incoming.store') }}" method="POST">
             @csrf
             <div class="row">
-                {{-- TANGGAL --}}
+                {{-- 1. TANGGAL --}}
                 <div class="col-md-6 mb-3">
-                    <label>Tanggal Masuk</label>
+                    <label class="form-label fw-bold">Tanggal Masuk</label>
                     <input type="date" name="tanggal" class="form-control" value="{{ date('Y-m-d') }}" required>
                 </div>
 
-                {{-- PILIH BARANG (Dropdown menyimpan data harga) --}}
+                {{-- 2. PILIH BARANG --}}
                 <div class="col-md-6 mb-3">
-                    <label>Pilih Barang</label>
-                    <select name="item_id" id="pilih-barang" class="form-select" required>
+                    <label class="form-label fw-bold">Pilih Barang</label>
+                    <select name="item_id" id="pilih-barang" class="form-select select2" required>
                         <option value="" data-harga="0">-- Pilih Barang --</option>
                         @foreach($items as $item)
-                            {{-- Kita simpan harga di atribut 'data-harga' --}}
+                            {{-- Simpan harga master di data-harga buat auto-fill --}}
                             <option value="{{ $item->id }}" data-harga="{{ $item->harga_satuan }}">
-                                {{ $item->nama_barang }} (Sisa: {{ $item->stok_saat_ini }})
+                                {{ $item->nama_barang }} (Sisa Stok: {{ $item->stok_saat_ini }})
                             </option>
                         @endforeach
                     </select>
-                    {{-- Info Harga Satuan (Muncul otomatis) --}}
-                    <small id="info-harga-satuan" class="text-muted fst-italic mt-1 d-block"></small>
-                </div>
-
-                {{-- INPUT JUMLAH --}}
-                <div class="col-12 mb-3">
-                    <label>Jumlah Masuk</label>
-                    <input type="number" name="jumlah" id="input-jumlah" class="form-control" min="1" placeholder="Masukkan jumlah barang..." required>
-
-                    {{-- HASIL PERHITUNGAN TOTAL (Tampil disini) --}}
-                    <div id="box-total" class="alert alert-light-primary color-primary mt-2 d-none">
-                        <i class="bi bi-calculator-fill me-2"></i>
-                        Estimasi Total Nilai: <span class="fw-bold fs-5" id="text-total-rupiah">Rp 0</span>
-                    </div>
+                    {{-- Info Harga Master (Hanya Referensi) --}}
+                    <small id="info-harga-master" class="text-muted fst-italic mt-1 d-block"></small>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end">
-                <a href="{{ route('items.index') }}" class="btn btn-secondary me-2">Batal</a>
-                <button type="submit" class="btn btn-success">Simpan Stok</button>
+            <div class="row">
+                {{-- 3. INPUT JUMLAH --}}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Jumlah Masuk</label>
+                    <input type="number" name="jumlah" id="input-jumlah" class="form-control" min="1" placeholder="0" required>
+                </div>
+
+                {{-- 4. INPUT HARGA BELI (WAJIB ADA UNTUK RUMUS RATA-RATA) --}}
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold text-success">Harga Beli Satuan (Sesuai Nota)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input type="number" name="harga_satuan" id="input-harga" class="form-control border-success" placeholder="0" required>
+                    </div>
+                    <small class="text-muted" style="font-size: 11px;">
+                        *Jika harga beda dengan master, sistem otomatis menghitung rata-rata.
+                    </small>
+                </div>
+            </div>
+
+            {{-- 5. KETERANGAN (Opsional) --}}
+            <div class="mb-3">
+                <label class="form-label">Keterangan / Asal Toko</label>
+                <textarea name="keterangan" class="form-control" rows="2" placeholder="Contoh: Belanja di Toko Merah, Nota No. 123"></textarea>
+            </div>
+
+            {{-- BOX TOTAL ESTIMASI --}}
+            <div id="box-total" class="alert alert-success d-none mt-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-calculator-fill me-2"></i> Total Nominal Belanja:</span>
+                    <span class="fw-bold fs-4" id="text-total-rupiah">Rp 0</span>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-4">
+                <a href="{{ route('incoming.index') }}" class="btn btn-secondary me-2">Batal</a>
+                <button type="submit" class="btn btn-success px-4">Simpan Barang Masuk</button>
             </div>
         </form>
     </div>
@@ -74,7 +96,8 @@
         // 1. Definisi Elemen
         const selectBarang = document.getElementById('pilih-barang');
         const inputJumlah  = document.getElementById('input-jumlah');
-        const infoHarga    = document.getElementById('info-harga-satuan');
+        const inputHarga   = document.getElementById('input-harga'); // Input Harga Baru
+        const infoMaster   = document.getElementById('info-harga-master');
         const boxTotal     = document.getElementById('box-total');
         const textTotal    = document.getElementById('text-total-rupiah');
 
@@ -87,36 +110,41 @@
             }).format(angka);
         };
 
-        // 3. Fungsi Utama Hitung
-        function hitungOtomatis() {
-            // Ambil harga dari atribut 'data-harga' di <option> yang dipilih
-            // Bukan dari input manual
+        // 3. Saat Barang Dipilih -> Auto Isi Harga
+        selectBarang.addEventListener('change', function() {
             const selectedOption = selectBarang.options[selectBarang.selectedIndex];
-            const hargaSatuan    = parseFloat(selectedOption.getAttribute('data-harga')) || 0;
-            const jumlah         = parseFloat(inputJumlah.value) || 0;
+            const hargaMaster    = parseFloat(selectedOption.getAttribute('data-harga')) || 0;
 
-            // Update Info Harga Satuan Kecil
-            if (hargaSatuan > 0) {
-                infoHarga.innerText = "Harga Satuan: " + formatRupiah(hargaSatuan);
+            if (hargaMaster > 0) {
+                // Tampilkan Info Harga Master
+                infoMaster.innerText = "Harga di Master saat ini: " + formatRupiah(hargaMaster);
+
+                // AUTO FILL: Masukkan harga master ke input harga beli (biar user gak ngetik ulang kalau sama)
+                inputHarga.value = Math.round(hargaMaster);
             } else {
-                infoHarga.innerText = "";
+                infoMaster.innerText = "";
+                inputHarga.value = "";
             }
+            hitungTotal(); // Hitung ulang total
+        });
 
-            // Hitung Total
-            const total = hargaSatuan * jumlah;
+        // 4. Fungsi Hitung Total (Jumlah * Harga Inputan)
+        function hitungTotal() {
+            const jumlah = parseFloat(inputJumlah.value) || 0;
+            const harga  = parseFloat(inputHarga.value) || 0; // Ambil dari input manual
+            const total  = jumlah * harga;
 
-            // Tampilkan Hasil Total di Bawah Input Jumlah
             if (total > 0) {
-                boxTotal.classList.remove('d-none'); // Munculkan kotak
+                boxTotal.classList.remove('d-none');
                 textTotal.innerText = formatRupiah(total);
             } else {
-                boxTotal.classList.add('d-none'); // Sembunyikan kotak jika 0
+                boxTotal.classList.add('d-none');
             }
         }
 
-        // 4. Pasang Event Listener (Jalankan saat dropdown berubah ATAU jumlah diketik)
-        selectBarang.addEventListener('change', hitungOtomatis);
-        inputJumlah.addEventListener('input', hitungOtomatis);
+        // 5. Event Listener untuk Hitung Realtime
+        inputJumlah.addEventListener('input', hitungTotal);
+        inputHarga.addEventListener('input', hitungTotal);
     });
 </script>
 @endpush

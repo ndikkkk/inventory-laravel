@@ -25,7 +25,7 @@
                         </select>
                     </div>
 
-                    {{-- 2. Filter Kategori (TAMBAHAN BARU) --}}
+                    {{-- 2. Filter Kategori --}}
                     <div class="d-flex align-items-center">
                         <select name="category_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()"
                             style="min-width: 150px;">
@@ -39,13 +39,14 @@
                         </select>
                     </div>
 
-                    {{-- Tombol Reset (Optional: Biar gampang balikin filter) --}}
+                    {{-- Tombol Reset --}}
                     @if (request('category_id') || request('sort_by'))
                         <a href="{{ route('items.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filter">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </a>
                     @endif
                 </form>
+
                 {{-- Group 1: Export & Import --}}
                 <a href="{{ route('items.excel') }}" class="btn btn-success btn-sm" title="Download Excel">
                     <i class="bi bi-file-earmark-excel"></i> Excel
@@ -59,7 +60,7 @@
                     <i class="bi bi-file-arrow-up"></i> Import
                 </button>
 
-                {{-- Group 2: Aksi Berisiko (Hapus Semua) --}}
+                {{-- Group 2: Aksi Berisiko --}}
                 <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteAll()"
                     title="Hapus Seluruh Data">
                     <i class="bi bi-trash"></i> Hapus Semua
@@ -123,7 +124,7 @@
                                 </a>
                             </th>
 
-                            <th>Satuan</th> {{-- Satuan biasanya tidak disortir --}}
+                            <th>Satuan</th>
 
                             {{-- SORT: STOK --}}
                             <th class="text-center">
@@ -160,13 +161,16 @@
                     </thead>
                     <tbody>
                         @foreach ($items as $item)
-                            <tr
-                                class="align-middle {{ $item->stok_saat_ini <= $item->min_stok ? 'background-color: #fc6c85;' : '' }}"">
-                                {{-- RUMUS: (Halaman Sekarang - 1) * Jumlah Per Halaman + Nomor Urut --}}
+                            {{-- FIX: Style dipisah ke attribute 'style', bukan 'class' --}}
+                            <tr class="align-middle"
+                                style="{{ $item->stok_saat_ini <= $item->min_stok ? 'background-color: #fff5f5;' : '' }}">
+
+                                {{-- RUMUS NOMOR HALAMAN --}}
                                 <td>{{ ($items->currentPage() - 1) * $items->perPage() + $loop->iteration }}</td>
+
                                 <td>
                                     {{ $item->nama_barang }}
-                                    {{-- Tambahan Badge Peringatan --}}
+                                    {{-- Tanda Peringatan Stok --}}
                                     @if ($item->stok_saat_ini <= $item->min_stok)
                                         <span class="text-danger fw-bold ms-1"
                                             style="cursor: help; font-size: 14px; vertical-align: top;"
@@ -178,12 +182,9 @@
                                 <td>
                                     @if ($item->account)
                                         <div class="d-flex flex-column">
-                                            {{-- Nama Induk (Misal: Barang Pakai Habis) --}}
                                             <small class="text-muted" style="font-size: 0.75rem;">
                                                 {{ $item->account->parent->parent->nama_akun ?? ($item->account->parent->nama_akun ?? '') }}
                                             </small>
-
-                                            {{-- Nama Barang (Misal: Alat Tulis Kantor) --}}
                                             <span class="fw-bold text-dark">
                                                 {{ $item->account->nama_akun }}
                                             </span>
@@ -194,14 +195,12 @@
                                 </td>
                                 <td>{{ $item->satuan }}</td>
 
-                                {{-- Kolom Stok: Angkanya kita merahkan jika menipis --}}
                                 <td class="text-center">
                                     <span
                                         class="fw-bold {{ $item->stok_saat_ini <= $item->min_stok ? 'text-danger' : '' }}">
                                         {{ $item->stok_saat_ini }}
                                     </span>
                                     <br>
-                                    {{-- Info min stok tetap ada tapi kecil & samar --}}
                                     <small class="text-muted" style="font-size: 9px; opacity: 0.7;">(Min:
                                         {{ $item->min_stok }})</small>
                                 </td>
@@ -216,22 +215,17 @@
                                             title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-
-                                        {{-- === BAGIAN INI YANG DIUBAH (Form Hapus Satuan) === --}}
+                                        {{-- Tombol Hapus --}}
                                         <form id="delete-form-{{ $item->id }}"
                                             action="{{ route('items.destroy', $item->id) }}" method="POST"
                                             class="d-inline">
                                             @csrf
                                             @method('DELETE')
-
-                                            {{-- Button type="button" dan onclick ke fungsi SweetAlert --}}
                                             <button type="button" class="btn btn-sm btn-danger" title="Hapus"
                                                 onclick="confirmDelete('delete-form-{{ $item->id }}')">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
-                                        {{-- ================================================= --}}
-
                                     </div>
                                 </td>
                             </tr>
@@ -239,13 +233,11 @@
                     </tbody>
                 </table>
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    {{-- Info kecil: Menampilkan 1 sampai 10 dari 500 data --}}
                     <small class="text-muted">
                         Menampilkan {{ $items->firstItem() }} s/d {{ $items->lastItem() }} dari total
                         {{ $items->total() }} data
                     </small>
 
-                    {{-- Tombol Next / Previous (Otomatis dari Laravel) --}}
                     <div>
                         {{ $items->links() }}
                     </div>
@@ -297,8 +289,7 @@
         </div>
     </div>
 
-    {{-- SCRIPT JAVASCRIPT --}}
-    {{-- Kita gunakan @push('scripts') agar script ini dilempar ke bawah body di layout utama --}}
+
     @push('scripts')
         <script>
             // === 1. Fungsi Hapus SATU Barang ===
@@ -319,7 +310,7 @@
                 });
             }
 
-            // === 2. Fungsi Hapus SEMUA Barang (Yang sudah ada sebelumnya) ===
+            // === 2. Fungsi Hapus SEMUA Barang ===
             function confirmDeleteAll() {
                 Swal.fire({
                     title: 'Hapus SEMUA Barang?',
