@@ -162,7 +162,8 @@
                         @foreach ($items as $item)
                             <tr
                                 class="align-middle {{ $item->stok_saat_ini <= $item->min_stok ? 'background-color: #fc6c85;' : '' }}"">
-                                <td>{{ $loop->iteration }}</td>
+                                {{-- RUMUS: (Halaman Sekarang - 1) * Jumlah Per Halaman + Nomor Urut --}}
+                                <td>{{ ($items->currentPage() - 1) * $items->perPage() + $loop->iteration }}</td>
                                 <td>
                                     {{ $item->nama_barang }}
                                     {{-- Tambahan Badge Peringatan --}}
