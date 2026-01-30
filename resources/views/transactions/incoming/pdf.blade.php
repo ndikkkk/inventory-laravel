@@ -45,7 +45,7 @@
     {{-- HEADER KOP SURAT RESMI --}}
     <div class="header">
         <h3>PEMERINTAH KABUPATEN BOYOLALI</h3>
-        <h3>BADAN KEPEGAWAIAN DAN PENGEMBANGAN SDM</h3>
+        <h3>BADAN KEPEGAWAIAN DAN PENGEMBANGAN SUMBER DAYA MANUSIA</h3>
         <p class="title-report">LAPORAN BARANG MASUK</p>
         
         {{-- Logika Tanggal (Support variable lama & baru) --}}

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daftar Akun</title>
+    <link rel="shortcut icon" href="{{ asset('images/logo_boyolali.png') }}" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -83,9 +84,9 @@
                         <option value="{{ $div->id }}">{{ $div->nama_bidang }}</option>
                     @endforeach
                 </select>
-                <div class="form-text text-muted" style="font-size: 0.75rem;">
+                {{-- <div class="form-text text-muted" style="font-size: 0.75rem;">
                     *Jika memilih <b>Sekretariat</b>, akun otomatis menjadi <b>Admin</b>.
-                </div>
+                </div> --}}
             </div>
 
             <div class="row">

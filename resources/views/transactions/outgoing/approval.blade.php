@@ -7,6 +7,7 @@
         {{-- HEADER --}}
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title my-auto">Kelola Permintaan Barang</h5>
+            {{--
             <div class="d-flex gap-2">
                 <a href="{{ route('outgoing.excel') }}" class="btn btn-success btn-sm">
                     <i class="bi bi-file-earmark-excel"></i> Excel
@@ -15,6 +16,7 @@
                     <i class="bi bi-printer"></i> Cetak Laporan Pengajuan
                 </a>
             </div>
+            --}}
         </div>
 
         <div class="card-body">

@@ -4,7 +4,7 @@
     <title>Laporan Mutasi Barang</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 10pt; color: #000; }
-        
+
         /* KOP SURAT */
         .header { text-align: center; margin-bottom: 20px; border-bottom: 3px double #000; padding-bottom: 10px; }
         .header h3 { margin: 0; font-size: 14pt; text-transform: uppercase; }
@@ -19,7 +19,7 @@
         table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
         th, td { border: 1px solid #000; padding: 5px; font-size: 9pt; vertical-align: middle; }
         th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
-        
+
         /* UTILS */
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -38,15 +38,14 @@
     <div class="header">
         <h3>PEMERINTAH KABUPATEN BOYOLALI</h3>
         <h3>BADAN KEPEGAWAIAN DAN PENGEMBANGAN SDM</h3>
-        <p>Komplek Perkantoran Terpadu Kabupaten Boyolali</p>
-        <p class="small">Laporan digenerate otomatis oleh Sistem Informasi Logistik (SIM-LOG)</p>
+        <p class="small">Laporan digenerate otomatis oleh Sistem Informasi dan Manajemen Logistik (SIM-LOG)</p>
     </div>
 
     {{-- 2. JUDUL LAPORAN --}}
     <div class="title-section">
         <h4>LAPORAN MUTASI & POSISI PERSEDIAAN BARANG</h4>
         <p style="font-size: 10pt;">
-            Periode: 
+            Periode:
             @if(isset($tglAwal) && isset($tglAkhir))
                 {{ \Carbon\Carbon::parse($tglAwal)->format('d M Y') }} s/d {{ \Carbon\Carbon::parse($tglAkhir)->format('d M Y') }}
             @else
@@ -74,7 +73,7 @@
             <tr>
                 <td class="text-center">{{ $loop->iteration }}</td>
                 <td class="text-center">{{ \Carbon\Carbon::parse($row->tanggal)->format('d/m/Y') }}</td>
-                
+
                 {{-- Nama Barang --}}
                 <td>
                     <span class="text-bold">{{ $row->item->nama_barang ?? '[Barang Dihapus]' }}</span>
@@ -82,7 +81,7 @@
 
                 {{-- Kolom Masuk (Rupiah) --}}
                 <td class="text-right">
-                    @if($row->jenis_transaksi == 'masuk') 
+                    @if($row->jenis_transaksi == 'masuk')
                         Rp {{ number_format($row->total_harga, 0, ',', '.') }}<br>
                         <small>({{ $row->jumlah }} {{ $row->item->satuan ?? 'Unit' }})</small>
                     @else - @endif
@@ -90,7 +89,7 @@
 
                 {{-- Kolom Keluar (Rupiah) --}}
                 <td class="text-right">
-                    @if($row->jenis_transaksi == 'keluar') 
+                    @if($row->jenis_transaksi == 'keluar')
                         Rp {{ number_format($row->total_harga, 0, ',', '.') }}<br>
                         <small>({{ $row->jumlah }} {{ $row->item->satuan ?? 'Unit' }})</small>
                     @else - @endif
@@ -101,9 +100,9 @@
 
                 {{-- Keterangan --}}
                 <td style="font-size: 8pt;">
-                    @if($row->jenis_transaksi == 'masuk') 
+                    @if($row->jenis_transaksi == 'masuk')
                         Pengadaan / Restock
-                    @else 
+                    @else
                         {{ $row->division->nama_bidang ?? 'Umum' }}
                     @endif
                 </td>
@@ -160,7 +159,7 @@
 
     {{-- 5. RINGKASAN REKONSILIASI --}}
     <div style="width: 60%; margin-top: 20px; border: 1px solid #000; padding: 10px;">
-        <h5 style="margin: 0 0 10px 0; text-decoration: underline;">RINGKASAN POSISI NILAI ASET:</h5>
+        <h5 style="margin: 0 0 10px 0; text-decoration: underline;">RINGKASAN POSISI NILAI BARANG:</h5>
         <table style="border: none; margin: 0;">
             <tr>
                 <td style="border: none; padding: 2px;">Nilai Awal (Stok 2026)</td>
@@ -193,8 +192,9 @@
                     Mengetahui,<br>
                     Kepala BKPSDM Boyolali<br>
                     <br><br><br><br><br>
-                    <span style="text-decoration: underline; font-weight: bold;">( ..................................... )</span><br>
-                    NIP. .....................................
+                    <span style="text-decoration: underline; font-weight: bold;">WASKITHO RAHARDJO, S.H., M.M.</span><br>
+                    Pembina Utama Muda<br>
+                    NIP. 196907031999031006
                 </td>
                 <td width="20%"></td> {{-- Spacer --}}
                 <td width="40%">

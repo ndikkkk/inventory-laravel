@@ -48,13 +48,17 @@
                 </form>
 
                 {{-- Group 1: Export & Import --}}
+                {{--
                 <a href="{{ route('items.excel') }}" class="btn btn-success btn-sm" title="Download Excel">
                     <i class="bi bi-file-earmark-excel"></i> Excel
                 </a>
+                --}}
 
+                {{--
                 <a href="{{ route('items.print') }}" target="_blank" class="btn btn-danger btn-sm" title="Cetak PDF">
                     <i class="bi bi-file-earmark-pdf"></i> PDF
                 </a>
+                --}}
 
                 <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
                     <i class="bi bi-file-arrow-up"></i> Import

@@ -201,7 +201,7 @@ class ItemController extends Controller
     }
 
     // CETAK PDF STOK MASTER
-    public function printStock()
+    /* public function printStock()
     {
         // REVISI: Ganti with('category') jadi with('account')
         // Urutkan berdasarkan account_id agar di PDF rapi per kategori
@@ -211,7 +211,7 @@ class ItemController extends Controller
 
         $pdf = PDF::loadView('items.print_stock', compact('items'));
         return $pdf->stream('Laporan-Stok-Barang.pdf');
-    }
+    } */
 
     // RESET SYSTEM
     public function deleteAll()

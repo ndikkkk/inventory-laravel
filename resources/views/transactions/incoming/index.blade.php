@@ -24,10 +24,9 @@
         @endif
 
         <div class="table-responsive">
-            <table class="table table-striped table-hover align-middle">
-                <thead class="table-light">
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <th>No</th>
                         <th>Tanggal</th>
                         <th>Nama Barang</th>
                         <th class="text-center">Jumlah</th>
@@ -62,7 +61,6 @@
                     @empty
                         <tr>
                             <td colspan="7" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 Belum ada riwayat barang masuk.
                             </td>
                         </tr>
